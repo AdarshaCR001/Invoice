@@ -3,10 +3,10 @@
 $billData = $_POST['data'];
 
 //Database connection
-$host = getenv('host');
-$db_name = getenv('db_name');
-$db_user = getenv('db_user');
-$db_password = getenv('db_password');
+$host = $_ENV['host'];
+$db_name = $_ENV['db_name'];
+$db_user = $_ENV['db_user'];
+$db_password = $_ENV['db_password'];
 
 try {
     // Create a new PDO instance
