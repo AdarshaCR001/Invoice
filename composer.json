@@ -1,6 +1,7 @@
 {
     "require": {
-        "aws/aws-sdk-php": "^3.273",
-        "vlucas/phpdotenv": "^5.5"
+        "vlucas/phpdotenv": "^5.5",
+        "async-aws/s3": "^1.13",
+        "dompdf/dompdf": "^2.0"
     }
 }

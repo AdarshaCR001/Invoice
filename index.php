@@ -1,19 +1,12 @@
 <?php
 
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
-
-require_once realpath(__DIR__ . '/vendor/autoload.php');
-
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+require_once('environment.php');
 
 // Database connection
-$host = $_ENV['host'];
-$db_name = $_ENV['db_name'];
-$db_user = $_ENV['db_user'];
-$db_password = $_ENV['db_password'];
+$host = $_ENV['HOST'];
+$db_name = $_ENV['DB_NAME'];
+$db_user = $_ENV['DB_USER'];
+$db_password = $_ENV['DB_PASSWORD'];
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);

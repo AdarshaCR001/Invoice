@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Indushree Invoice</title>
+
+	<style>
+		.invoice-box {
+			max-width: 800px;
+			margin: auto;
+			padding: 30px;
+			border: 1px solid #eee;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+			font-size: 16px;
+			line-height: 24px;
+			font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+			color: #555;
+		}
+
+		.invoice-box table {
+			width: 100%;
+			line-height: inherit;
+			text-align: left;
+		}
+
+		.invoice-box table td {
+			padding: 5px;
+			vertical-align: top;
+		}
+
+		.invoice-box table tr td:nth-child(2) {
+			text-align: right;
+		}
+
+		.invoice-box table tr.top table td {
+			padding-bottom: 20px;
+		}
+
+		.invoice-box table tr.top table td.title {
+			font-size: 25px;
+			line-height: 25px;
+			color: #333;
+		}
+
+		.invoice-box table tr.information table td {
+			padding-bottom: 40px;
+		}
+
+		.invoice-box table tr.heading td {
+			background: #eee;
+			border-bottom: 1px solid #ddd;
+			font-weight: bold;
+		}
+
+		.invoice-box table tr.details td {
+			padding-bottom: 20px;
+		}
+
+		.invoice-box table tr.item td {
+			border-bottom: 1px solid #eee;
+		}
+
+		.invoice-box table tr.item.last td {
+			border-bottom: none;
+		}
+
+		.invoice-box table tr.total td:nth-child(2) {
+			border-top: 2px solid #eee;
+			font-weight: bold;
+		}
+
+		@media only screen and (max-width: 600px) {
+			.invoice-box table tr.top table td {
+				width: 100%;
+				display: block;
+				text-align: center;
+			}
+
+			.invoice-box table tr.information table td {
+				width: 100%;
+				display: block;
+				text-align: center;
+			}
+		}
+
+		/** RTL **/
+		.invoice-box.rtl {
+			direction: rtl;
+			font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+		}
+
+		.invoice-box.rtl table {
+			text-align: right;
+		}
+
+		.invoice-box.rtl table tr td:nth-child(2) {
+			text-align: left;
+		}
+
+		.text-center {
+			text-align: center;
+		}
+
+		.text-left {
+			text-align: left;
+		}
+
+		.text-right {
+			text-align: right;
+		}
+
+		.container__watermark {
+			/* Text color */
+			color: rgba(0, 0, 0, 0.2);
+
+			/* Text styles */
+			font-size: 4rem;
+			font-weight: bold;
+			text-transform: uppercase;
+			position: absolute;
+
+			/* Rotate the text */
+			transform: rotate(-45deg);
+
+			/* Disable the selection */
+			user-select: none;
+		}
+	</style>
+</head>
+
+<body>
+	<!-- Orginal Copy -->
+	<div>
+		<div class="invoice-box content">
+
+			<table cellpadding="0" cellspacing="0">
+				<tr>
+					<td colspan="2" class="text-center" style="font-size: 25px;"><b>INVOICE</b></td>
+				</tr>
+
+				<tr class="details" style="font-size: 20px; font-weight: bold;">
+					<td>GSTIN:29APAPB5521J1Z4</td>
+					<td>Ph:6363585927<br />7795290146</td>
+				</tr>
+			</table>
+			<hr />
+			<table cellpadding="0" cellspacing="0">
+				<tr class="top">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td class="title">
+									<b>INDUSHREE ENTERPRISES</b><br />
+									<div style="font-size: 15px;">BM Road,Yediyur,Kunigal Taluk,Tumkur</div>
+								</td>
+
+								<td>
+									Invoice #: INVOICE_NUMBER<br />
+									Issue Date: DATE<br />
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+
+				<tr class="information">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td style="width: 30%;">
+									<b>Bank Details</b><br />
+									<b>Name:</b> Indushree enterprises<br />
+									<b>Bank:</b> SBI<br />
+									<b>ACC No:</b> 64099662317<br />
+									<b>IFSC Code:</b> SBIN0040233
+								</td>
+								<td class="text-right">
+									<b>Buyer Details:</b> BUYER_NAME<br />
+									BUYER_COMPANY<br />
+									BUYER_ADDRESS<br /><br />
+									<b>Vehicle No:</b> VEHICLE_NUMBER
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			<table cellpadding="0" cellspacing="0">
+				<tr class="heading">
+					<td>#</td>
+					<td>Description</td>
+					<td>Bags</td>
+					<td>Qty (QTL)</td>
+					<td>Unit Price (per QTL)</td>
+					<td>Amount</td>
+				</tr>
+
+				<tr class="details">
+					<td>1</td>
+					<td>ITEM_NAME</td>
+					<td>BAG</td>
+					<td>QUANTITY</td>
+					<td>PRICE</td>
+					<td>AMOUNT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="text-right"><b>Vehicle Freight:</b></td>
+					<td>VEHICLE_FREIGHT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<!-- The watermark -->
+					<td>
+						<div class="container__watermark">
+							Original
+						</div>
+					</td>
+					<td></td>
+					<td class="text-right"><b>Total:</b></td>
+					<td>TOTAL_AMT</td>
+				</tr>
+			</table>
+			<hr />
+			<table>
+				<tr>
+					<td style="width: 50%;">
+						Make sure all the checks payable to Indushree enterprises.<br />Total due in 15 days. Overdue
+						accounts
+						subject to a service charge of 21% per month. <br />We are not responsible if any of the goods
+						damaged
+						while transport
+					</td>
+					<td>
+						<b>Indushree enterprises</b><br/>
+						<img style="width: 200px;" src="IMAGE_SRC"/><br/>
+						<b>Proprietor</b>
+					</td>
+				</tr>
+			</table>
+			<h4 class="text-center">Thank you for your business!</h4>
+			<div class="text-right"><span>**</span> this is computer generated invoice signature not required</div>
+		</div>
+	</div>
+
+
+	<!-- Duplicate Copy -->
+	<div>
+		<div class="invoice-box content">
+
+			<table cellpadding="0" cellspacing="0">
+				<tr>
+					<td colspan="2" class="text-center" style="font-size: 25px;"><b>INVOICE</b></td>
+				</tr>
+
+				<tr class="details" style="font-size: 20px; font-weight: bold;">
+					<td>GSTIN:29APAPB5521J1Z4</td>
+					<td>Ph:6363585927<br />7795290146</td>
+				</tr>
+			</table>
+			<hr />
+			<table cellpadding="0" cellspacing="0">
+				<tr class="top">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td class="title">
+									<b>INDUSHREE ENTERPRISES</b><br />
+									<div style="font-size: 15px;">BM Road,Yediyur,Kunigal Taluk,Tumkur</div>
+								</td>
+
+								<td>
+									Invoice #: INVOICE_NUMBER<br />
+									Issue Date: DATE<br />
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+
+				<tr class="information">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td style="width: 30%;">
+									<b>Bank Details</b><br />
+									<b>Name:</b> Indushree enterprises<br />
+									<b>Bank:</b> SBI<br />
+									<b>ACC No:</b> 64099662317<br />
+									<b>IFSC Code:</b> SBIN0040233
+								</td>
+								<td>
+									<b>Buyer Details:</b> BUYER_NAME<br />
+									BUYER_COMPANY<br />
+									BUYER_ADDRESS<br /><br />
+									<b>Vehicle No:</b> VEHICLE_NUMBER
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			<table cellpadding="0" cellspacing="0">
+				<tr class="heading">
+					<td>#</td>
+					<td>Description</td>
+					<td>Bags</td>
+					<td>Qty (QTL)</td>
+					<td>Unit Price (per QTL)</td>
+					<td>Amount</td>
+				</tr>
+
+				<tr class="details">
+					<td>1</td>
+					<td>ITEM_NAME</td>
+					<td>BAG</td>
+					<td>QUANTITY</td>
+					<td>PRICE</td>
+					<td>AMOUNT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="text-right"><b>Vehicle Freight:</b></td>
+					<td>VEHICLE_FREIGHT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<!-- The watermark -->
+					<td>
+						<div class="container__watermark">
+							Duplicate
+						</div>
+					</td>
+					<td></td>
+					<td class="text-right"><b>Total:</b></td>
+					<td>TOTAL_AMT</td>
+				</tr>
+			</table>
+			<hr />
+			<table>
+				<tr>
+					<td style="width: 50%;">
+						Make sure all the checks payable to Indushree enterprises.<br />Total due in 15 days. Overdue
+						accounts
+						subject to a service charge of 21% per month. <br />We are not responsible if any of the goods
+						damaged
+						while transport
+					</td>
+					<td>
+						<b></b><br /> <br /> <br />
+						<b>Receiver Signature</b>
+					</td>
+				</tr>
+			</table>
+			<h4 class="text-center">Thank you for your business!</h4>
+		</div>
+	</div>
+
+
+	<!-- Triplicate Copy -->
+	<div>
+		<div class="invoice-box content">
+
+			<table cellpadding="0" cellspacing="0">
+				<tr>
+					<td colspan="2" class="text-center" style="font-size: 25px;"><b>INVOICE</b></td>
+				</tr>
+
+				<tr class="details" style="font-size: 20px; font-weight: bold;">
+					<td>GSTIN:29APAPB5521J1Z4</td>
+					<td>Ph:6363585927<br />7795290146</td>
+				</tr>
+			</table>
+			<hr />
+			<table cellpadding="0" cellspacing="0">
+				<tr class="top">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td class="title">
+									<b>INDUSHREE ENTERPRISES</b><br />
+									<div style="font-size: 15px;">BM Road,Yediyur,Kunigal Taluk,Tumkur</div>
+								</td>
+
+								<td>
+									Invoice #: INVOICE_NUMBER<br />
+									Issue Date: DATE<br />
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+
+				<tr class="information">
+					<td colspan="2">
+						<table>
+							<tr>
+								<td style="width: 30%;">
+									<b>Bank Details</b><br />
+									<b>Name:</b> Indushree enterprises<br />
+									<b>Bank:</b> SBI<br />
+									<b>ACC No:</b> 64099662317<br />
+									<b>IFSC Code:</b> SBIN0040233
+								</td>
+								<td class="text-right">
+									<b>Buyer Details:</b> BUYER_NAME<br />
+									BUYER_COMPANY<br />
+									BUYER_ADDRESS<br /><br />
+									<b>Vehicle No:</b> VEHICLE_NUMBER
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+			<table cellpadding="0" cellspacing="0">
+				<tr class="heading">
+					<td>#</td>
+					<td>Description</td>
+					<td>Bags</td>
+					<td>Qty (QTL)</td>
+					<td>Unit Price (per QTL)</td>
+					<td>Amount</td>
+				</tr>
+
+				<tr class="details">
+					<td>1</td>
+					<td>ITEM_NAME</td>
+					<td>BAG</td>
+					<td>QUANTITY</td>
+					<td>PRICE</td>
+					<td>AMOUNT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td class="text-right"><b>Vehicle Freight:</b></td>
+					<td>VEHICLE_FREIGHT</td>
+				</tr>
+				<tr class="details">
+					<td></td>
+					<td></td>
+					<!-- The watermark -->
+					<td>
+						<div class="container__watermark">
+							Triplicate
+						</div>
+					</td>
+					<td></td>
+					<td class="text-right"><b>Total:</b></td>
+					<td>TOTAL_AMT</td>
+				</tr>
+			</table>
+			<hr />
+			<table>
+				<tr>
+					<td style="width: 50%;">
+						Make sure all the checks payable to Indushree enterprises.<br />Total due in 15 days. Overdue
+						accounts
+						subject to a service charge of 21% per month. <br />We are not responsible if any of the goods
+						damaged
+						while transport
+					</td>
+					<td>
+						<b>Indushree enterprises</b><br/>
+						<img style="width: 200px;" src="IMAGE_SRC"/><br/>
+						<b>Proprietor</b>
+					</td>
+				</tr>
+			</table>
+			<h4 class="text-center">Thank you for your business!</h4>
+			<div class="text-right"><span>**</span> this is computer generated invoice signature not required</div>
+		</div>
+	</div>
+
+</body>
+
+</html>

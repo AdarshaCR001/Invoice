@@ -1,12 +1,18 @@
 <?php
+
+require_once('environment.php');
+require_once('htmlPdfConverter.php');
+require_once('aws_s3.php');
+
 // Retrieve the JSON array
 $billData = $_POST['data'];
 
 //Database connection
-$host = $_ENV['host'];
-$db_name = $_ENV['db_name'];
-$db_user = $_ENV['db_user'];
-$db_password = $_ENV['db_password'];
+$host = $_ENV['HOST'];
+$db_name = $_ENV['DB_NAME'];
+$db_user = $_ENV['DB_USER'];
+$db_password = $_ENV['DB_PASSWORD'];
+$s3_base_url = $_ENV['S3_BASE_URL'];
 
 try {
     // Create a new PDO instance
@@ -17,6 +23,7 @@ try {
     $stmt = $conn->prepare("INSERT INTO bills (buyer_name, buyer_company, buyer_address, item_name, quantity, price, bag, vehicle_number, vehicle_freight, created_on, updated_on) 
                            VALUES (:buyerName, :buyerCompany, :buyerAddress, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :createdOn, :updatedOn)");
 
+    $billData['createdOn'] = date('Y-m-d');
     // Bind the parameters
     $stmt->bindParam(':buyerName', $billData['buyerName']);
     $stmt->bindParam(':buyerCompany', $billData['buyerCompany']);
@@ -27,8 +34,22 @@ try {
     $stmt->bindParam(':bag', $billData['bag']);
     $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
     $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
-    $stmt->bindParam(':createdOn', date('Y-m-d'));
-    $stmt->bindParam(':updatedOn', date('Y-m-d'));
+    $stmt->bindParam(':createdOn', $billData['createdOn']);
+    $stmt->bindParam(':updatedOn', $billData['createdOn']);
+
+    // Execute the query
+    $stmt->execute();
+
+    $billData['invoiceNumber'] = $conn->lastInsertId();
+
+    $filePath = getUpdatedPdf($billData);
+    $file = fopen($filePath, "r") or die("Unable to open file!");
+    $awsUploader = new AWSUploader();
+    $fileKey = $s3_base_url."".$awsUploader->uploadFile("bills", $file);
+
+    $stmt  = $conn->prepare("UPDATE bills SET url = :url WHERE invoice_number = :invoiceNumber");
+    $stmt->bindParam(':url', $fileKey);
+    $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
 
     // Execute the query
     $stmt->execute();
