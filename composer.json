@@ -1,4 +1,9 @@
 {
+    "config": {
+        "platform": {
+            "php": "7.4.8"
+        }
+    },
     "require": {
         "vlucas/phpdotenv": "^5.5",
         "async-aws/s3": "^1.13",
