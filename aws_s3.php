@@ -34,7 +34,7 @@ class AWSUploader {
             $result = $s3->putObject([
                 'Bucket' => $this->s3_bucket,
                 'Key' => $fileKey,
-                'SourceFile' => $filename,
+                'Body' => $file,
                 'ACL' => 'public-read',
             ]);
 

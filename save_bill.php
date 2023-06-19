@@ -45,7 +45,8 @@ try {
     $filePath = getUpdatedPdf($billData);
     $file = fopen($filePath, "r") or die("Unable to open file!");
     $awsUploader = new AWSUploader();
-    $fileKey = $s3_base_url."".$awsUploader->uploadFile("bills", $file);
+    $a=$awsUploader->uploadFile("bills", $file);
+    $fileKey = $s3_base_url."".$a;
 
     $stmt  = $conn->prepare("UPDATE bills SET url = :url WHERE invoice_number = :invoiceNumber");
     $stmt->bindParam(':url', $fileKey);
@@ -53,6 +54,9 @@ try {
 
     // Execute the query
     $stmt->execute();
+
+    fclose($file);
+    unlink($filePath);
 
     // Return a success message
     echo 'Bill data saved successfully!';
