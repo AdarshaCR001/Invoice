@@ -179,17 +179,17 @@ try {
 
             <div class="form-group">
                 <label for="quantity">Quantity:</label>
-                <input type="number" name="quantity" id="quantity" class="form-control" required>
+                <input type="number" onkeydown="return isNumberKey(event);" value=0 name="quantity" id="quantity" class="form-control" required>
             </div>
 
             <div class="form-group">
                 <label for="price">Price:</label>
-                <input type="number" step="0.01" name="price" id="price" class="form-control" required>
+                <input type="number" onkeydown="return isNumberKey(event);" value=0 step="0.01" name="price" id="price" class="form-control" required>
             </div>
 
             <div class="form-group">
                 <label for="bag">Bag:</label>
-                <input type="number" name="bag" id="bag" class="form-control" required>
+                <input type="number" onkeydown="return isNumberKey(event);" value=0 name="bag" id="bag" class="form-control" required>
             </div>
 
             <div class="form-group">
@@ -199,7 +199,7 @@ try {
 
             <div class="form-group">
                 <label for="vehicleFreight">Vehicle Freight:</label>
-                <input type="number" step="0.01" name="vehicleFreight" id="vehicleFreight" class="form-control">
+                <input type="number" onkeydown="return isNumberKey(event);" value=0 step="0.01" value=0 name="vehicleFreight" id="vehicleFreight" class="form-control">
             </div>
 
             <button type="submit" class="btn btn-primary">Save</button>
@@ -217,9 +217,10 @@ try {
                     <th>Buyer Company</th>
                     <th>Buyer Address</th>
                     <th>Item Name</th>
+                    <th>Bag</th>
                     <th>Quantity</th>
                     <th>Price</th>
-                    <th>Bag</th>
+                    <th>Amount</th>
                     <th>Vehicle Number</th>
                     <th>Vehicle Freight</th>
                     <th>Actions</th>
@@ -233,9 +234,10 @@ try {
                 <td><?php echo $row['buyer_company']; ?></td>
                 <td><?php echo $row['buyer_address']; ?></td>
                 <td><?php echo $row['item_name']; ?></td>
+                <td><?php echo $row['bag']; ?></td>
                 <td><?php echo $row['quantity']; ?></td>
                 <td><?php echo $row['price']; ?></td>
-                <td><?php echo $row['bag']; ?></td>
+                <td><?php echo $row['price']*$row['quantity']; ?></td>
                 <td><?php echo $row['vehicle_number']; ?></td>
                 <td><?php echo $row['vehicle_freight']; ?></td>
                 <td>
@@ -283,7 +285,7 @@ try {
     $(document).ready(function() {
   $('#billForm').submit(function(event) {
     event.preventDefault(); // Prevent the default form submission
-    
+    var vechicleFreight = $('input[name=vehicleFreight]').val();
     var billData = {
       buyerName: $('input[name=buyerName]').val(),
       buyerCompany: $('input[name=buyerCompany]').val(),
@@ -293,7 +295,7 @@ try {
       price: parseFloat($('input[name=price]').val()),
       bag: parseFloat($('input[name=bag]').val()),
       vehicleNumber: $('input[name=vehicleNumber]').val(),
-      vehicleFreight: parseFloat($('input[name=vehicleFreight]').val())
+      vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight
       // Add more properties as needed
     };
     
@@ -342,6 +344,22 @@ try {
         document.getElementById('bag').value = '';
         document.getElementById('vehicleNumber').value = '';
         document.getElementById('vehicleFreight').value = '';
+        }
+
+        function isNumberKey(event) {
+            // Get the key code of the pressed key
+            var keyCode = event.keyCode || event.which;
+
+            // Allow only numeric values (0-9), backspace (8), and arrow keys (37-40)
+            if (
+                (keyCode >= 48 && keyCode <= 57) || // Numeric keys
+                keyCode === 8 || // Backspace
+                (keyCode >= 37 && keyCode <= 40) // Arrow keys
+            ) {
+                return true;
+            } else {
+                return false;
+            }
         }
     </script>
 </html>
