@@ -179,17 +179,17 @@ try {
 
             <div class="form-group">
                 <label for="quantity">Quantity:</label>
-                <input type="number" onkeydown="return isNumberKey(event);" value=0 name="quantity" id="quantity" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="price">Price:</label>
-                <input type="number" onkeydown="return isNumberKey(event);" value=0 step="0.01" name="price" id="price" class="form-control" required>
+                <input type="number" value=0 step="0.01" name="quantity" id="quantity" class="form-control" required>
             </div>
 
             <div class="form-group">
                 <label for="bag">Bag:</label>
-                <input type="number" onkeydown="return isNumberKey(event);" value=0 name="bag" id="bag" class="form-control" required>
+                <input type="number" value=0 step="0.01" name="bag" id="bag" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="price">Price:</label>
+                <input type="number" value=0 step="0.01" name="price" id="price" class="form-control" required>
             </div>
 
             <div class="form-group">
@@ -199,7 +199,7 @@ try {
 
             <div class="form-group">
                 <label for="vehicleFreight">Vehicle Freight:</label>
-                <input type="number" onkeydown="return isNumberKey(event);" value=0 step="0.01" value=0 name="vehicleFreight" id="vehicleFreight" class="form-control">
+                <input type="number" value=0 step="0.01" value=0 name="vehicleFreight" id="vehicleFreight" class="form-control">
             </div>
 
             <button type="submit" class="btn btn-primary">Save</button>
@@ -344,22 +344,6 @@ try {
         document.getElementById('bag').value = '';
         document.getElementById('vehicleNumber').value = '';
         document.getElementById('vehicleFreight').value = '';
-        }
-
-        function isNumberKey(event) {
-            // Get the key code of the pressed key
-            var keyCode = event.keyCode || event.which;
-
-            // Allow only numeric values (0-9), backspace (8), and arrow keys (37-40)
-            if (
-                (keyCode >= 48 && keyCode <= 57) || // Numeric keys
-                keyCode === 8 || // Backspace
-                (keyCode >= 37 && keyCode <= 40) // Arrow keys
-            ) {
-                return true;
-            } else {
-                return false;
-            }
         }
     </script>
 </html>

@@ -82,7 +82,8 @@ function getUpdatedPdf($bill) {
         ),
         $htmlContent
     );
-    $buyerName = str_replace(" ", "", $bill['buyerCompany']);
+    $specialChars = array('!', '@', '#', ' ', '&', '^');
+    $buyerName = str_replace($specialChars, "", $bill['buyerCompany']);
     return fileCreate($buyerName, $dynamicContent);
 }
 

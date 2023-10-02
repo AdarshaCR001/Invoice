@@ -3,8 +3,8 @@
 require_once realpath(__DIR__ . '/vendor/autoload.php');// Include the AWS SDK for PHP
 require_once('environment.php');
 
-use AsyncAws\S3\S3Client;
-use AsyncAws\S3\S3Exception;
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 class AWSUploader {
 
@@ -22,9 +22,13 @@ class AWSUploader {
 
     public function uploadFile($folder, $file) {
         $s3 = new S3Client([
+            'version' => 'latest',
             'region' => $this->s3_region,
             'accessKeyId' => $this->aws_id,
-                'accessKeySecret' => $this->aws_key
+            'credentials' => [
+                'key' => $this->aws_id,
+                'secret' => $this->aws_key,
+            ]
         ]);
 
         $metadata = stream_get_meta_data($file);

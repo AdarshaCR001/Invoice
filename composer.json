@@ -6,7 +6,7 @@
     },
     "require": {
         "vlucas/phpdotenv": "^5.5",
-        "async-aws/s3": "^1.13",
-        "dompdf/dompdf": "^2.0"
+        "dompdf/dompdf": "^2.0",
+        "aws/aws-sdk-php": "^3.282"
     }
 }
