@@ -1,6 +1,5 @@
 <?php
 require_once realpath(__DIR__ . '/vendor/autoload.php');// Include the AWS SDK for PHP
-require_once('aws_s3.php');
 
 
 use Dompdf\Dompdf;

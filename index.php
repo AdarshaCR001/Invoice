@@ -157,6 +157,8 @@ try {
         <h1>Add Bill</h1>
         <form id="billForm">
 
+        <input type="hidden" name="invoiceNumber" id="invoiceNumber">
+
             <div class="form-group">
                 <label for="buyerName">Buyer Name:</label>
                 <input type="text" name="buyerName" id="buyerName" class="form-control">
@@ -178,7 +180,7 @@ try {
             </div>
 
             <div class="form-group">
-                <label for="quantity">Quantity:</label>
+                <label for="quantity">Quantity (KG):</label>
                 <input type="number" value=0 step="0.01" name="quantity" id="quantity" class="form-control" required>
             </div>
 
@@ -188,7 +190,7 @@ try {
             </div>
 
             <div class="form-group">
-                <label for="price">Price:</label>
+                <label for="price">Price (Per KG):</label>
                 <input type="number" value=0 step="0.01" name="price" id="price" class="form-control" required>
             </div>
 
@@ -218,8 +220,8 @@ try {
                     <th>Buyer Address</th>
                     <th>Item Name</th>
                     <th>Bag</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
+                    <th>Quantity (KG)</th>
+                    <th>Price (per KG)</th>
                     <th>Amount</th>
                     <th>Vehicle Number</th>
                     <th>Vehicle Freight</th>
@@ -242,6 +244,7 @@ try {
                 <td><?php echo $row['vehicle_freight']; ?></td>
                 <td>
                     <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
+                    <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
                 </td>
             </tr>
         <?php } ?>
@@ -285,8 +288,13 @@ try {
     $(document).ready(function() {
   $('#billForm').submit(function(event) {
     event.preventDefault(); // Prevent the default form submission
+
+    var invoiceNumber = $('input[name=invoiceNumber]').val(); // Check for invoice number (edit mode)
+    console.log("InvoiceNumber: "+invoiceNumber);
     var vechicleFreight = $('input[name=vehicleFreight]').val();
+    console.log("vehicleFreight: "+vechicleFreight);
     var billData = {
+        invoiceNumber: invoiceNumber, // Include invoiceNumber if updating
       buyerName: $('input[name=buyerName]').val(),
       buyerCompany: $('input[name=buyerCompany]').val(),
       buyerAddress: $('input[name=buyerAddress]').val(),
@@ -331,6 +339,23 @@ try {
         // Function to close the form overlay
         function closeForm() {
             document.getElementById("overlayForm").style.display = "none";
+        }
+
+        // Function to open the form overlay for editing a bill with pre-filled details
+        function editBill(bill) {
+            document.getElementById("overlayForm").style.display = "block";
+
+            // Populate the form with existing bill data for editing
+            $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
+            $('input[name=buyerName]').val(bill.buyer_name);
+            $('input[name=buyerCompany]').val(bill.buyer_company);
+            $('input[name=buyerAddress]').val(bill.buyer_address);
+            $('input[name=itemName]').val(bill.item_name);
+            $('input[name=quantity]').val(bill.quantity);
+            $('input[name=price]').val(bill.price);
+            $('input[name=bag]').val(bill.bag);
+            $('input[name=vehicleNumber]').val(bill.vehicle_number);
+            $('input[name=vehicleFreight]').val(bill.vehicle_freight);
         }
 
         // Function to clear the form inputs
