@@ -23,12 +23,9 @@ class AWSUploader {
     public function uploadFile($folder, $file) {
         $s3 = new S3Client([
             'version' => 'latest',
-            'region' => $this->s3_region,
-            'accessKeyId' => $this->aws_id,
-            'credentials' => [
-                'key' => $this->aws_id,
-                'secret' => $this->aws_key,
-            ]
+            'region' => $this->s3_region
+            // AWS SDK will automatically look for credentials in environment variables
+            // (e.g., AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
         ]);
 
         $metadata = stream_get_meta_data($file);
@@ -43,25 +40,23 @@ class AWSUploader {
             ]);
 
             return $fileKey;
-        } catch (S3Exception $e) {
+        } catch (AwsException $e) { // Catching generic AwsException is better for S3
             // Error occurred while uploading the file to S3
-            echo 'Error: ' . $e->getMessage();
+            error_log("S3Exception in AWSUploader::uploadFile: " . $e->getMessage() . " | Attempted File key: " . $fileKey);
+            return false;
         }
     }
 
     public function getFile($fileKey) {
         $s3 = new S3Client([
             'version' => 'latest',
-            'region' => $this->region,
-            'credentials' => [
-                'key' => $this->awsKey,
-                'secret' => $this->awsSecret,
-            ],
+            'region' => $this->s3_region
+            // AWS SDK will automatically look for credentials in environment variables
         ]);
 
         try {
             $result = $s3->getObject([
-                'Bucket' => $this->bucketName,
+                'Bucket' => $this->s3_bucket, // Corrected: use class property
                 'Key' => $fileKey,
             ]);
 
@@ -70,9 +65,10 @@ class AWSUploader {
             file_put_contents($fileName, $fileContent);
 
             return $fileName;
-        } catch (S3Exception $e) {
+        } catch (AwsException $e) { // Catching generic AwsException is better for S3
             // Error occurred while retrieving the file from S3
-            echo 'Error: ' . $e->getMessage();
+            error_log("S3Exception in AWSUploader::getFile: " . $e->getMessage() . " | File key: " . $fileKey);
+            return false; // Returning false for consistency
         }
     }
 }

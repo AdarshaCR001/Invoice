@@ -1,4 +1,13 @@
 <?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
 
 require_once('environment.php');
 
@@ -9,7 +18,7 @@ $db_user = $_ENV['DB_USER'];
 $db_password = $_ENV['DB_PASSWORD'];
 
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
+    $conn = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8mb4", $db_user, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     echo "Connection failed: " . $e->getMessage();
@@ -17,12 +26,20 @@ try {
 
 // Pagination variables
 $records_per_page = 10;
-$page = isset($_GET['page']) ? $_GET['page'] : 1;
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+// Ensure $page is at least 1
+if ($page < 1) {
+    $page = 1;
+}
 $start_from = ($page - 1) * $records_per_page;
+
+// Ensure $start_from and $records_per_page are integers for security
+$start_from_int = intval($start_from);
+$records_per_page_int = intval($records_per_page);
 
 try {
     // Retrieve data from the database
-    $stmt = $conn->prepare("SELECT * FROM bills ORDER BY invoice_number DESC LIMIT $start_from, $records_per_page");
+    $stmt = $conn->prepare("SELECT * FROM bills ORDER BY invoice_number DESC LIMIT $start_from_int, $records_per_page_int");
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -158,6 +175,7 @@ try {
         <form id="billForm">
 
         <input type="hidden" name="invoiceNumber" id="invoiceNumber">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
 
             <div class="form-group">
                 <label for="buyerName">Buyer Name:</label>
@@ -294,6 +312,7 @@ try {
     var vechicleFreight = $('input[name=vehicleFreight]').val();
     console.log("vehicleFreight: "+vechicleFreight);
     var billData = {
+        csrf_token: $('input[name="csrf_token"]').val(), // Added CSRF token
         invoiceNumber: invoiceNumber, // Include invoiceNumber if updating
       buyerName: $('input[name=buyerName]').val(),
       buyerCompany: $('input[name=buyerCompany]').val(),
