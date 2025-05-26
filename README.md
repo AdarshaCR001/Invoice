@@ -1,4 +1,4 @@
-# Invoice generating application using PHP Laravel
+# Invoice generating application using PHP
 
 Refer below website to setup on MAC  
 <https://www.git-tower.com/blog/apache-on-macos/>

@@ -199,6 +199,9 @@ try {
     // Delete the temporary local file as it's successfully uploaded
     unlink($filePath);
 
+    // Regenerate CSRF token after successful processing
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
     header('Content-Type: application/json');
     if ($isInsert) {
         echo json_encode(['success' => true, 'message' => 'Bill data inserted successfully!', 'invoiceNumber' => $billData['invoiceNumber']]);

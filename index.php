@@ -21,7 +21,8 @@ try {
     $conn = new PDO("mysql:host=$host;dbname=$db_name;charset=utf8mb4", $db_user, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    echo "Connection failed: " . $e->getMessage();
+    error_log("Database Connection Failed: " . $e->getMessage());
+    die("An error occurred while connecting to the database. Please try again later.");
 }
 
 // Pagination variables
@@ -37,22 +38,36 @@ $start_from = ($page - 1) * $records_per_page;
 $start_from_int = intval($start_from);
 $records_per_page_int = intval($records_per_page);
 
+$database_error_message = null; // Initialize error message variable
+$result = []; // Initialize $result to an empty array
+$total_records = 0; // Initialize $total_records
+$total_pages = 0; // Initialize $total_pages
+
 try {
     // Retrieve data from the database
-    $stmt = $conn->prepare("SELECT * FROM bills ORDER BY invoice_number DESC LIMIT $start_from_int, $records_per_page_int");
+    $stmt = $conn->prepare("SELECT * FROM bills ORDER BY invoice_number DESC LIMIT :start_from, :records_per_page");
+    $stmt->bindParam(':start_from', $start_from_int, PDO::PARAM_INT);
+    $stmt->bindParam(':records_per_page', $records_per_page_int, PDO::PARAM_INT);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Count total number of records
-    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bills");
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    $total_records = $row['total'];
+    $stmt_count = $conn->prepare("SELECT COUNT(*) AS total FROM bills");
+    $stmt_count->execute();
+    $row_count = $stmt_count->fetch(PDO::FETCH_ASSOC);
+    if ($row_count) {
+        $total_records = $row_count['total'];
+    }
 
     // Calculate total number of pages
-    $total_pages = ceil($total_records / $records_per_page);
+    if ($records_per_page > 0) {
+        $total_pages = ceil($total_records / $records_per_page);
+    }
+
 } catch (PDOException $e) {
-    echo "Query failed: " . $e->getMessage();
+    error_log("Database Query Failed: " . $e->getMessage());
+    // $result is already initialized to [], and $total_records, $total_pages to 0
+    $database_error_message = "An error occurred while retrieving data. Please try again later.";
 }
 ?>
 
@@ -164,6 +179,12 @@ try {
 <body>
 <h1>Bills</h1>
 
+<?php if (!empty($database_error_message)): ?>
+    <div class="alert alert-danger">
+        <?php echo htmlspecialchars($database_error_message); ?>
+    </div>
+<?php endif; ?>
+
 <!-- Button to open the form as an overlay -->
 <button onclick="openForm()" class="btn btn-primary">Add Bill</button>
 
@@ -247,55 +268,61 @@ try {
                 </tr>
             </thead>
             <tbody>
-        <?php foreach ($result as $row) { ?>
+        <?php if (!empty($result)): foreach ($result as $row) { ?>
             <tr>
-                <td><?php echo $row['invoice_number']; ?></td>
-                <td><?php echo $row['buyer_name']; ?></td>
-                <td><?php echo $row['buyer_company']; ?></td>
-                <td><?php echo $row['buyer_address']; ?></td>
-                <td><?php echo $row['item_name']; ?></td>
-                <td><?php echo $row['bag']; ?></td>
-                <td><?php echo $row['quantity']; ?></td>
-                <td><?php echo $row['price']; ?></td>
-                <td><?php echo $row['price']*$row['quantity']; ?></td>
-                <td><?php echo $row['vehicle_number']; ?></td>
-                <td><?php echo $row['vehicle_freight']; ?></td>
+                <td><?php echo htmlspecialchars($row['invoice_number']); ?></td>
+                <td><?php echo htmlspecialchars($row['buyer_name']); ?></td>
+                <td><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                <td><?php echo htmlspecialchars($row['buyer_address']); ?></td>
+                <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                <td><?php echo htmlspecialchars($row['bag']); ?></td>
+                <td><?php echo htmlspecialchars($row['quantity']); ?></td>
+                <td><?php echo htmlspecialchars($row['price']); ?></td>
+                <td><?php echo htmlspecialchars($row['price']*$row['quantity']); ?></td>
+                <td><?php echo htmlspecialchars($row['vehicle_number']); ?></td>
+                <td><?php echo htmlspecialchars($row['vehicle_freight']); ?></td>
                 <td>
-                    <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
+                    <a class="file-download" href="<?php echo htmlspecialchars($row['url']); ?>" target="_blank" download>Download</a>
                     <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
                 </td>
             </tr>
-        <?php } ?>
+        <?php } endif; ?>
         </tbody>
     </table>
         </div>
 
     <div class="pagination">
     <?php
-    // Determine the range of page links to display
-    $num_links = 10; // Number of page links to show
-    $start = max(1, $page - floor($num_links / 2));
-    $end = min($start + $num_links - 1, $total_pages);
+    if ($total_pages > 0) { // Only display pagination if there are pages
+        // Determine the range of page links to display
+        $num_links = 10; // Number of page links to show
+        $start = max(1, $page - floor($num_links / 2));
+        $end = min($start + $num_links - 1, $total_pages);
 
-    // Display the first page link
-    if ($start > 1) {
-        echo '<a href="?page=1">1</a>';
-        echo '<span>&hellip;</span>';
-    }
-
-    // Display the page links within the range
-    for ($i = $start; $i <= $end; $i++) {
-        echo '<a href="?page=' . $i . '"';
-        if ($i == $page) {
-            echo ' class="active"';
+        // Display the first page link
+        if ($start > 1) {
+            echo '<a href="?page=1">1</a>';
+            if ($start > 2) { // Add ellipsis if there's a gap
+                echo '<span>&hellip;</span>';
+            }
         }
-        echo '>' . $i . '</a>';
-    }
 
-    // Display the last page link
-    if ($end < $total_pages) {
-        echo '<span>&hellip;</span>';
-        echo '<a href="?page=' . $total_pages . '">' . $total_pages . '</a>';
+        // Display the page links within the range
+        for ($i = $start; $i <= $end; $i++) {
+            echo '<a href="?page=' . $i . '"';
+            if ($i == $page) {
+                echo ' class="active"';
+            }
+            echo '>' . $i . '</a>';
+        }
+
+        // Display the last page link
+        if ($end < $total_pages) {
+            if ($end < $total_pages - 1) { // Add ellipsis if there's a gap
+                echo '<span>&hellip;</span>';
+            }
+            echo '<a href="?page=' . $total_pages . '">' . $total_pages . '</a>';
+        }
     }
     ?>
 </div>
