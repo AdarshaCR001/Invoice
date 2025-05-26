@@ -53,8 +53,7 @@ $(document).ready(function() {
         try {
             // The data attribute is already a JS object/string, direct parsing might not be needed if jQuery handles it.
             // However, json_encode in PHP produces a string that needs parsing.
-            var billDataObject = JSON.parse(billDataString); 
-            editBill(billDataObject); // Call the existing function that populates the form
+            editBill(billDataString); // Call the existing function that populates the form
         } catch (e) {
             console.error("Error parsing bill data:", e, "Raw data:", billDataString);
             Swal.fire('Error', 'Could not read bill details for editing. Invalid data format.', 'error');

@@ -7,7 +7,7 @@ use Dompdf\Dompdf;
 function fileCreate($preName, $html){
     //Load Signature
     // Use environment variable for signature path with a default
-    $imagePath = $_ENV['APP_SIGNATURE_IMAGE_PATH'] ?? 'template/Devraj_Sign.jpeg';
+    $imagePath = $_ENV['APP_SIGNATURE_IMAGE_PATH'] ?? 'templates/Devraj_Sign.jpeg';
     if (file_exists($imagePath)) {
         $imageData = base64_encode(file_get_contents($imagePath));
         $imageSrc = 'data:image/jpeg;base64,' . $imageData;
@@ -47,7 +47,7 @@ function fileCreate($preName, $html){
 
 function getUpdatedPdf($bill) {
     // Get the HTML content from the file
-    $htmlContent = file_get_contents("template/billTemplate.html");
+    $htmlContent = file_get_contents("templates/billTemplate.html");
 
     $amount = 0;
     if (isset($bill['quantity']) && isset($bill['price'])) {
