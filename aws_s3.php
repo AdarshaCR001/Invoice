@@ -14,8 +14,8 @@ class AWSUploader {
     private $s3_region;
 
     public function __construct() {
-        $this->aws_id = $_ENV['AWS_Id'];
-        $this->aws_key = $_ENV['AWS_Key'];
+        $this->aws_id = $_ENV['AWS_ACCESS_KEY_ID'];
+        $this->aws_key = $_ENV['AWS_SECRET_ACCESS_KEY'];
         $this->s3_bucket = $_ENV['S3_BUCKET'];
         $this->s3_region = $_ENV['S3_REGION'];
     }
@@ -23,9 +23,12 @@ class AWSUploader {
     public function uploadFile($folder, $file) {
         $s3 = new S3Client([
             'version' => 'latest',
-            'region' => $this->s3_region
-            // AWS SDK will automatically look for credentials in environment variables
-            // (e.g., AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+            'region' => $this->s3_region,
+            // We need this since in the deployable application can't acccess env values
+            'credentials' => [
+                 'key' => $this->aws_id,
+                 'secret' => $this->aws_key,
+             ]
         ]);
 
         $metadata = stream_get_meta_data($file);
