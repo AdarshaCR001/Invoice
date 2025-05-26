@@ -14,9 +14,6 @@
 # Ignore environment-specific configuration files
 /config/env.php
 
-# Ignore Composer lock file
-composer.lock
-
 # Ignore PHPStorm project files (if you use PHPStorm)
 .idea/
 
