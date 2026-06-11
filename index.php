@@ -204,6 +204,11 @@ try {
                 <input type="number" value=0 step="0.01" value=0 name="vehicleFreight" id="vehicleFreight" class="form-control">
             </div>
 
+            <div class="form-group">
+                <label for="balance">Balance Amount:</label>
+                <input type="number" value=0 step="0.01" name="balance" id="balance" class="form-control">
+            </div>
+
             <button type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>
@@ -304,7 +309,23 @@ try {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    var balanceManuallyEdited = false;
+
     $(document).ready(function() {
+      $('#quantity, #price, #vehicleFreight').on('input change', function() {
+        if (!balanceManuallyEdited) {
+          var qty = parseFloat($('#quantity').val()) || 0;
+          var price = parseFloat($('#price').val()) || 0;
+          var freight = parseFloat($('#vehicleFreight').val()) || 0;
+          var calculatedBalance = (qty * price) + freight;
+          $('#balance').val(calculatedBalance.toFixed(2));
+        }
+      });
+
+      $('#balance').on('input change', function() {
+        balanceManuallyEdited = true;
+      });
+
   $('#billForm').submit(function(event) {
     event.preventDefault(); // Prevent the default form submission
 
@@ -322,7 +343,8 @@ try {
       price: parseFloat($('input[name=price]').val()),
       bag: parseFloat($('input[name=bag]').val()),
       vehicleNumber: $('input[name=vehicleNumber]').val(),
-      vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight
+      vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight,
+      balance: parseFloat($('input[name=balance]').val()) || 0.00
       // Add more properties as needed
     };
     
@@ -375,7 +397,9 @@ try {
 });
         // Function to open the form overlay
         function openForm() {
+            clearForm();
             document.getElementById("overlayForm").style.display = "block";
+            balanceManuallyEdited = false;
         }
 
         // Function to close the form overlay
@@ -386,6 +410,7 @@ try {
         // Function to open the form overlay for editing a bill with pre-filled details
         function editBill(bill) {
             document.getElementById("overlayForm").style.display = "block";
+            balanceManuallyEdited = true;
 
             // Populate the form with existing bill data for editing
             $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
@@ -398,10 +423,12 @@ try {
             $('input[name=bag]').val(bill.bag);
             $('input[name=vehicleNumber]').val(bill.vehicle_number);
             $('input[name=vehicleFreight]').val(bill.vehicle_freight);
+            $('input[name=balance]').val(bill.balance);
         }
 
         // Function to clear the form inputs
         function clearForm() {
+        $('input[name=invoiceNumber]').val('');
         document.getElementById('buyerName').value = '';
         document.getElementById('buyerCompany').value = '';
         document.getElementById('buyerAddress').value = '';
@@ -411,6 +438,8 @@ try {
         document.getElementById('bag').value = '';
         document.getElementById('vehicleNumber').value = '';
         document.getElementById('vehicleFreight').value = '';
+        document.getElementById('balance').value = '';
+        balanceManuallyEdited = false;
         }
 
         // Function to open the balance form overlay with pre-filled balance

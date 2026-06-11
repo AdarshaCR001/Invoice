@@ -19,6 +19,8 @@ try {
     $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+    $billData['balance'] = isset($billData['balance']) ? floatval($billData['balance']) : 0.00;
+
     if (!empty($billData['invoiceNumber'])) {
         // If invoiceNumber is present, perform an update
         $billData['updatedOn'] = date('Y-m-d');
@@ -34,6 +36,7 @@ try {
                                     bag = :bag, 
                                     vehicle_number = :vehicleNumber, 
                                     vehicle_freight = :vehicleFreight, 
+                                    balance = :balance,
                                     updated_on = :updatedOn 
                                 WHERE invoice_number = :invoiceNumber");
 
@@ -43,8 +46,8 @@ try {
         $billData['createdOn'] = date('Y-m-d');
 
         // Prepare the SQL statement for inserting a new record
-        $stmt = $conn->prepare("INSERT INTO bills (buyer_name, buyer_company, buyer_address, item_name, quantity, price, bag, vehicle_number, vehicle_freight, created_on, updated_on) 
-                               VALUES (:buyerName, :buyerCompany, :buyerAddress, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :createdOn, :updatedOn)");
+        $stmt = $conn->prepare("INSERT INTO bills (buyer_name, buyer_company, buyer_address, item_name, quantity, price, bag, vehicle_number, vehicle_freight, balance, created_on, updated_on) 
+                               VALUES (:buyerName, :buyerCompany, :buyerAddress, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :balance, :createdOn, :updatedOn)");
 
         echo 'Bill data inserted successfully!';
     }
@@ -59,6 +62,7 @@ try {
     $stmt->bindParam(':bag', $billData['bag']);
     $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
     $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
+    $stmt->bindParam(':balance', $billData['balance']);
 
     if (!empty($billData['invoiceNumber'])) {
         $stmt->bindParam(':updatedOn', $billData['createdOn']);
