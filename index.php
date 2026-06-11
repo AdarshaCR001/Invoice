@@ -22,7 +22,7 @@ $start_from = ($page - 1) * $records_per_page;
 
 try {
     // Retrieve data from the database
-    $stmt = $conn->prepare("SELECT * FROM bills ORDER BY invoice_number DESC LIMIT $start_from, $records_per_page");
+    $stmt = $conn->prepare("SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address FROM bills b JOIN buyers buy ON b.buyer_id = buy.id ORDER BY b.invoice_number DESC LIMIT $start_from, $records_per_page");
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
