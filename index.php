@@ -17,30 +17,78 @@ try {
 
 // Pagination variables
 $records_per_page = 10;
-$page = isset($_GET['page']) ? $_GET['page'] : 1;
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $start_from = ($page - 1) * $records_per_page;
 
-try {
-    // Retrieve data from the database
-    $stmt = $conn->prepare("SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address FROM bills b JOIN buyers buy ON b.buyer_id = buy.id ORDER BY b.invoice_number DESC LIMIT $start_from, $records_per_page");
-    $stmt->execute();
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$buyer_filter = isset($_GET['buyer_filter']) ? intval($_GET['buyer_filter']) : 0;
+$balance_filter = isset($_GET['balance_filter']) ? $_GET['balance_filter'] : 'all';
 
-    // Retrieve list of buyers for the form dropdown selection
+$where_clauses = [];
+$params = [];
+
+if ($buyer_filter > 0) {
+    $where_clauses[] = "b.buyer_id = :buyer_filter";
+    $params[':buyer_filter'] = $buyer_filter;
+}
+
+if ($balance_filter === 'remaining') {
+    $where_clauses[] = "b.balance > 0";
+} elseif ($balance_filter === 'none') {
+    $where_clauses[] = "b.balance = 0";
+}
+
+$where_sql = "";
+if (count($where_clauses) > 0) {
+    $where_sql = "WHERE " . implode(" AND ", $where_clauses);
+}
+
+try {
+    // Retrieve list of buyers for the form dropdown selection and filter dropdown
     $stmt_buyers = $conn->prepare("SELECT * FROM buyers ORDER BY buyer_company ASC");
     $stmt_buyers->execute();
     $buyers = $stmt_buyers->fetchAll(PDO::FETCH_ASSOC);
 
-    // Count total number of records
-    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bills");
+    // Retrieve data from the database with active filters
+    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address 
+              FROM bills b 
+              JOIN buyers buy ON b.buyer_id = buy.id 
+              $where_sql 
+              ORDER BY b.invoice_number DESC 
+              LIMIT :start_from, :records_per_page";
+    
+    $stmt = $conn->prepare($query);
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val);
+    }
+    $stmt->bindValue(':start_from', $start_from, PDO::PARAM_INT);
+    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
     $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Count total number of records under active filter
+    $stmt_count = $conn->prepare("SELECT COUNT(*) AS total FROM bills b $where_sql");
+    foreach ($params as $key => $val) {
+        $stmt_count->bindValue($key, $val);
+    }
+    $stmt_count->execute();
+    $row = $stmt_count->fetch(PDO::FETCH_ASSOC);
     $total_records = $row['total'];
 
     // Calculate total number of pages
     $total_pages = ceil($total_records / $records_per_page);
 } catch (PDOException $e) {
     echo "Query failed: " . $e->getMessage();
+}
+
+function getPaginationLink($p, $buyer_filter, $balance_filter) {
+    $params = ['page' => $p];
+    if ($buyer_filter > 0) {
+        $params['buyer_filter'] = $buyer_filter;
+    }
+    if ($balance_filter !== 'all') {
+        $params['balance_filter'] = $balance_filter;
+    }
+    return '?' . http_build_query($params);
 }
 ?>
 
@@ -422,6 +470,80 @@ try {
             color: var(--text-main);
         }
 
+        /* Filter Container Styles */
+        .filter-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            padding: 16px 24px;
+            box-shadow: var(--glass-glow);
+            margin-bottom: 30px;
+        }
+
+        .filter-form {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 12px;
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 0px;
+        }
+
+        .filter-btn {
+            height: 42px !important;
+            padding: 0 24px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2) !important;
+        }
+
+        .reset-btn {
+            background: var(--card-bg) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-color) !important;
+            font-weight: 600 !important;
+            height: 42px !important;
+            padding: 0 24px !important;
+            border-radius: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            transform: translateY(-2px);
+        }
+
+        body.light-theme .reset-btn:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
+        }
+
         /* Input Controls */
         .form-group {
             margin-bottom: 20px;
@@ -626,6 +748,35 @@ try {
     </div>
 </div>
 
+<!-- Filter form -->
+<div class="filter-container">
+    <form method="GET" class="filter-form">
+        <div class="filter-group">
+            <label for="buyer_filter">Filter by Buyer:</label>
+            <select name="buyer_filter" id="buyer_filter" class="form-control">
+                <option value="">-- All Buyers --</option>
+                <?php foreach ($buyers as $b) { ?>
+                    <option value="<?php echo htmlspecialchars($b['id']); ?>" <?php echo $buyer_filter == $b['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($b['buyer_company']); ?>
+                    </option>
+                <?php } ?>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="balance_filter">Balance Status:</label>
+            <select name="balance_filter" id="balance_filter" class="form-control">
+                <option value="all" <?php echo $balance_filter === 'all' ? 'selected' : ''; ?>>All Bills</option>
+                <option value="remaining" <?php echo $balance_filter === 'remaining' ? 'selected' : ''; ?>>Balance Remaining (> 0)</option>
+                <option value="none" <?php echo $balance_filter === 'none' ? 'selected' : ''; ?>>No Balance (= 0)</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary filter-btn">Apply Filters</button>
+            <a href="index.php" class="btn btn-default reset-btn">Reset</a>
+        </div>
+    </form>
+</div>
+
 <!-- Table to display the data -->
 <div class="table-container">
 <table class="table">
@@ -683,13 +834,13 @@ try {
 
     // Display the first page link
     if ($start > 1) {
-        echo '<a href="?page=1">1</a>';
+        echo '<a href="' . getPaginationLink(1, $buyer_filter, $balance_filter) . '">1</a>';
         echo '<span>&hellip;</span>';
     }
 
     // Display the page links within the range
     for ($i = $start; $i <= $end; $i++) {
-        echo '<a href="?page=' . $i . '"';
+        echo '<a href="' . getPaginationLink($i, $buyer_filter, $balance_filter) . '"';
         if ($i == $page) {
             echo ' class="active"';
         }
@@ -699,7 +850,7 @@ try {
     // Display the last page link
     if ($end < $total_pages) {
         echo '<span>&hellip;</span>';
-        echo '<a href="?page=' . $total_pages . '">' . $total_pages . '</a>';
+        echo '<a href="' . getPaginationLink($total_pages, $buyer_filter, $balance_filter) . '">' . $total_pages . '</a>';
     }
     ?>
 </div>
