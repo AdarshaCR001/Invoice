@@ -15,26 +15,20 @@ try {
     echo "Connection failed: " . $e->getMessage();
 }
 
-// Pagination variables
-$records_per_page = 10;
-$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-$start_from = ($page - 1) * $records_per_page;
-
-$buyer_filter = isset($_GET['buyer_filter']) ? intval($_GET['buyer_filter']) : 0;
-$balance_filter = isset($_GET['balance_filter']) ? $_GET['balance_filter'] : 'all';
+// Month and Year Filters
+$selected_month = isset($_GET['month']) ? $_GET['month'] : 'all';
+$selected_year = isset($_GET['year']) ? $_GET['year'] : 'all';
 
 $where_clauses = [];
 $params = [];
 
-if ($buyer_filter > 0) {
-    $where_clauses[] = "b.buyer_id = :buyer_filter";
-    $params[':buyer_filter'] = $buyer_filter;
+if ($selected_year !== 'all') {
+    $where_clauses[] = "YEAR(b.created_on) = :year";
+    $params[':year'] = intval($selected_year);
 }
-
-if ($balance_filter === 'remaining') {
-    $where_clauses[] = "b.balance > 0";
-} elseif ($balance_filter === 'none') {
-    $where_clauses[] = "b.balance = 0";
+if ($selected_month !== 'all') {
+    $where_clauses[] = "MONTH(b.created_on) = :month";
+    $params[':month'] = intval($selected_month);
 }
 
 $where_sql = "";
@@ -43,60 +37,122 @@ if (count($where_clauses) > 0) {
 }
 
 try {
-    // Retrieve list of buyers for the form dropdown selection and filter dropdown
-    $stmt_buyers = $conn->prepare("SELECT * FROM buyers ORDER BY buyer_company ASC");
-    $stmt_buyers->execute();
-    $buyers = $stmt_buyers->fetchAll(PDO::FETCH_ASSOC);
-
-    // Retrieve data from the database with active filters
-    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address 
-              FROM bills b 
-              JOIN buyers buy ON b.buyer_id = buy.id 
-              $where_sql 
-              ORDER BY b.invoice_number DESC 
-              LIMIT :start_from, :records_per_page";
-    
-    $stmt = $conn->prepare($query);
+    // 1. Core aggregates
+    $query_agg = "
+        SELECT 
+            COUNT(b.invoice_number) AS total_invoices,
+            SUM((b.quantity * b.price) + b.vehicle_freight) AS total_billing,
+            SUM(b.balance) AS total_balance,
+            SUM(b.quantity) AS total_qty
+        FROM bills b
+        $where_sql
+    ";
+    $stmt_agg = $conn->prepare($query_agg);
     foreach ($params as $key => $val) {
-        $stmt->bindValue($key, $val);
+        $stmt_agg->bindValue($key, $val);
     }
-    $stmt->bindValue(':start_from', $start_from, PDO::PARAM_INT);
-    $stmt->bindValue(':records_per_page', $records_per_page, PDO::PARAM_INT);
-    $stmt->execute();
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt_agg->execute();
+    $aggregates = $stmt_agg->fetch(PDO::FETCH_ASSOC);
 
-    // Count total number of records under active filter
-    $stmt_count = $conn->prepare("SELECT COUNT(*) AS total FROM bills b $where_sql");
+    $total_invoices = $aggregates['total_invoices'] ?: 0;
+    $total_billing = $aggregates['total_billing'] ?: 0.00;
+    $total_balance = $aggregates['total_balance'] ?: 0.00;
+    $total_qty = $aggregates['total_qty'] ?: 0.00;
+    $total_received = $total_billing - $total_balance;
+
+    // 2. Top Buyer by Revenue
+    $query_top_buyer = "
+        SELECT buy.buyer_company, buy.buyer_name, SUM((b.quantity * b.price) + b.vehicle_freight) AS revenue
+        FROM bills b
+        JOIN buyers buy ON b.buyer_id = buy.id
+        $where_sql
+        GROUP BY b.buyer_id
+        ORDER BY revenue DESC
+        LIMIT 1
+    ";
+    $stmt_top = $conn->prepare($query_top_buyer);
     foreach ($params as $key => $val) {
-        $stmt_count->bindValue($key, $val);
+        $stmt_top->bindValue($key, $val);
     }
-    $stmt_count->execute();
-    $row = $stmt_count->fetch(PDO::FETCH_ASSOC);
-    $total_records = $row['total'];
+    $stmt_top->execute();
+    $top_buyer_row = $stmt_top->fetch(PDO::FETCH_ASSOC);
+    $top_buyer_name = $top_buyer_row ? $top_buyer_row['buyer_company'] . " (" . ($top_buyer_row['buyer_name'] ?: '-') . ")" : "N/A";
+    $top_buyer_revenue = $top_buyer_row ? $top_buyer_row['revenue'] : 0.00;
 
-    // Calculate total number of pages
-    $total_pages = ceil($total_records / $records_per_page);
+    // 3. Highest Balance Holder
+    $query_top_balance = "
+        SELECT buy.buyer_company, buy.buyer_name, SUM(b.balance) AS balance_sum
+        FROM bills b
+        JOIN buyers buy ON b.buyer_id = buy.id
+        $where_sql
+        GROUP BY b.buyer_id
+        ORDER BY balance_sum DESC
+        LIMIT 1
+    ";
+    $stmt_bal = $conn->prepare($query_top_balance);
+    foreach ($params as $key => $val) {
+        $stmt_bal->bindValue($key, $val);
+    }
+    $stmt_bal->execute();
+    $top_bal_row = $stmt_bal->fetch(PDO::FETCH_ASSOC);
+    $top_bal_name = $top_bal_row ? $top_bal_row['buyer_company'] . " (" . ($top_bal_row['buyer_name'] ?: '-') . ")" : "N/A";
+    $top_bal_amount = $top_bal_row ? $top_bal_row['balance_sum'] : 0.00;
+
+    // 4. Available Years in database for filtering
+    $stmt_years = $conn->prepare("SELECT DISTINCT YEAR(created_on) AS yr FROM bills WHERE created_on IS NOT NULL ORDER BY yr DESC");
+    $stmt_years->execute();
+    $available_years = $stmt_years->fetchAll(PDO::FETCH_COLUMN);
+
+    // 5. Top 5 Buyers list by billing in the period
+    $query_buyers_list = "
+        SELECT buy.buyer_company, buy.buyer_name, 
+               SUM((b.quantity * b.price) + b.vehicle_freight) AS total_spent,
+               SUM(b.balance) AS total_outstanding,
+               COUNT(b.invoice_number) AS invoices_count
+        FROM bills b
+        JOIN buyers buy ON b.buyer_id = buy.id
+        $where_sql
+        GROUP BY b.buyer_id
+        ORDER BY total_spent DESC
+        LIMIT 5
+    ";
+    $stmt_blist = $conn->prepare($query_buyers_list);
+    foreach ($params as $key => $val) {
+        $stmt_blist->bindValue($key, $val);
+    }
+    $stmt_blist->execute();
+    $top_buyers_list = $stmt_blist->fetchAll(PDO::FETCH_ASSOC);
+
+    // 6. Recent 5 bills in the period
+    $query_recent_bills = "
+        SELECT b.*, buy.buyer_company, buy.buyer_name 
+        FROM bills b
+        JOIN buyers buy ON b.buyer_id = buy.id
+        $where_sql
+        ORDER BY b.invoice_number DESC
+        LIMIT 5
+    ";
+    $stmt_rlist = $conn->prepare($query_recent_bills);
+    foreach ($params as $key => $val) {
+        $stmt_rlist->bindValue($key, $val);
+    }
+    $stmt_rlist->execute();
+    $recent_bills_list = $stmt_rlist->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
     echo "Query failed: " . $e->getMessage();
 }
 
-function getPaginationLink($p, $buyer_filter, $balance_filter) {
-    $params = ['page' => $p];
-    if ($buyer_filter > 0) {
-        $params['buyer_filter'] = $buyer_filter;
-    }
-    if ($balance_filter !== 'all') {
-        $params['balance_filter'] = $balance_filter;
-    }
-    return '?' . http_build_query($params);
+// Helper to format currency
+function formatCurrency($val) {
+    return '₹ ' . number_format($val, 2);
 }
 ?>
 
-<!-- HTML and CSS for displaying the data -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bills</title>
+    <title>Dashboard</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -120,6 +176,14 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             --input-bg: #0c0d12;
             --heading-gradient: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
             --row-hover: rgba(255, 255, 255, 0.02);
+            
+            /* HSL gradients for cards */
+            --g-blue: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --g-green: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            --g-red: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            --g-purple: linear-gradient(135deg, #8b5cf6 0%, #5d3fd3 100%);
+            --g-orange: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --g-cyan: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
         }
 
         body.light-theme {
@@ -142,6 +206,13 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             --input-bg: #f9fafb;
             --heading-gradient: linear-gradient(135deg, #1f2937 0%, #4f46e5 100%);
             --row-hover: rgba(0, 0, 0, 0.02);
+
+            --g-blue: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            --g-green: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            --g-red: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            --g-purple: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            --g-orange: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            --g-cyan: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
         }
 
         body {
@@ -165,9 +236,6 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
         }
 
         .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 40px;
         }
 
@@ -235,24 +303,61 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             background: rgba(0, 0, 0, 0.05) !important;
         }
 
+        /* Filter Controls */
+        .filter-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            padding: 16px 24px;
+            box-shadow: var(--glass-glow);
+            margin-bottom: 30px;
+        }
+
+        .filter-form {
+            display: flex;
+            align-items: flex-end;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 12px;
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-control {
+            background-color: var(--input-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-main) !important;
+            border-radius: 8px !important;
+            padding: 10px 14px !important;
+            height: auto !important;
+            transition: all 0.3s ease !important;
+            box-shadow: none !important;
+        }
+
+        .form-control:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+        }
+
         select.form-control option {
             background-color: var(--modal-bg) !important;
             color: var(--text-main) !important;
         }
 
-        .form-control[readonly] {
-            background-color: rgba(255, 255, 255, 0.02) !important;
-            color: var(--text-muted) !important;
-            cursor: not-allowed;
-            border-style: dashed !important;
-        }
-        
-        body.light-theme .form-control[readonly] {
-            background-color: rgba(0, 0, 0, 0.03) !important;
-            color: var(--text-muted) !important;
-        }
-
-        /* Upgrade add button */
         .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%) !important;
             border: none !important;
@@ -263,12 +368,123 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             border-radius: 8px !important;
             box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4) !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6) !important;
-            background: linear-gradient(135deg, var(--primary-hover) 0%, #60a5fa 100%) !important;
+        }
+
+        .reset-btn {
+            background: var(--card-bg) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-color) !important;
+            font-weight: 600 !important;
+            height: 42px !important;
+            padding: 0 24px !important;
+            border-radius: 8px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            transform: translateY(-2px);
+        }
+
+        body.light-theme .reset-btn:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            border-radius: 16px;
+            padding: 24px;
+            color: #ffffff;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.4);
+        }
+
+        body.light-theme .stat-card {
+            box-shadow: 0 10px 24px rgba(31, 41, 55, 0.1);
+        }
+        body.light-theme .stat-card:hover {
+            box-shadow: 0 16px 32px rgba(31, 41, 55, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.85;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 8px 0;
+            letter-spacing: -0.01em;
+            word-break: break-all;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            opacity: 0.75;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            background: var(--heading-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.01em;
         }
 
         /* Glassmorphic Table Container */
@@ -315,11 +531,9 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             background-color: var(--row-hover);
         }
 
-        /* Header Row Styling */
         thead tr {
             background-color: rgba(255, 255, 255, 0.015) !important;
         }
-
         body.light-theme thead tr {
             background-color: rgba(0, 0, 0, 0.015) !important;
         }
@@ -329,445 +543,74 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             font-weight: 700 !important;
         }
 
-        /* Invoice Number Column Distinct Styling */
-        th:first-child, td:first-child {
-            font-family: 'Courier New', Courier, monospace !important;
-            font-weight: 700 !important;
-            color: #818cf8 !important; /* Soft indigo/blue for IDs */
-            text-align: center !important;
-            width: 80px;
-        }
-
-        body.light-theme th:first-child, body.light-theme td:first-child {
-            color: #4f46e5 !important;
-        }
-
-        /* Actions Column Distinct Design */
-        .actions-header, .actions-cell {
-            background-color: rgba(99, 102, 241, 0.04) !important;
-            border-left: 1px solid var(--border-color) !important;
-            text-align: center !important;
-        }
-        
-        .actions-header {
-            color: #a5b4fc !important;
-        }
-
-        body.light-theme .actions-header {
-            color: #4f46e5 !important;
-        }
-        
-        body.light-theme .actions-header, body.light-theme .actions-cell {
-            background-color: rgba(79, 70, 229, 0.03) !important;
-        }
-
-        /* Common Action Button Sizes & Core Layout */
-        .file-download, .btn-warning, .btn-info {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            height: 34px !important;
-            line-height: 1 !important;
-            padding: 0 16px !important;
-            font-size: 13px !important;
-            font-weight: 500 !important;
-            border-radius: 6px !important;
-            text-align: center !important;
-            vertical-align: middle !important;
-            box-sizing: border-box !important;
-            border: none !important;
-            transition: all 0.2s ease !important;
-            text-decoration: none !important;
-        }
-
-        .file-download {
-            background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%);
-            color: white !important;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-        }
-
-        .file-download:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.5);
-            background: linear-gradient(135deg, var(--accent-green-hover) 0%, #10b981 100%);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important;
-            color: white !important;
-            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3) !important;
-            margin-left: 6px;
-        }
-
-        .btn-warning:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(245, 158, 11, 0.5) !important;
-            background: linear-gradient(135deg, var(--accent-orange-hover) 0%, #f59e0b 100%) !important;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, var(--accent-cyan) 0%, #0891b2 100%) !important;
-            color: white !important;
-            box-shadow: 0 4px 10px rgba(6, 182, 212, 0.3) !important;
-            margin-left: 6px;
-        }
-
-        .btn-info:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(6, 182, 212, 0.5) !important;
-            background: linear-gradient(135deg, var(--accent-cyan-hover) 0%, #06b6d4 100%) !important;
-        }
-
-        /* Overlay form modals */
-        .overlay {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: var(--modal-overlay-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .overlay-content {
-            background-color: var(--modal-bg);
-            margin: 8% auto;
-            padding: 32px;
-            border: 1px solid var(--border-color);
-            width: 90%;
-            max-width: 550px;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-            position: relative;
-        }
-
-        .overlay-content h1 {
-            font-size: 1.8rem;
-            margin-top: 0;
-            margin-bottom: 24px;
-            background: var(--heading-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
-        }
-
-        .close-btn {
-            color: var(--text-muted);
-            position: absolute;
-            top: 24px;
-            right: 24px;
-            font-size: 24px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .close-btn:hover {
-            color: var(--text-main);
-        }
-
-        /* Filter Container Styles */
-        .filter-container {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 12px;
-            padding: 16px 24px;
-            box-shadow: var(--glass-glow);
-            margin-bottom: 30px;
-        }
-
-        .filter-form {
-            display: flex;
-            align-items: flex-end;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .filter-group label {
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 12px;
-            margin-bottom: 6px;
-            display: block;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 0px;
-        }
-
-        .filter-btn {
-            height: 42px !important;
-            padding: 0 24px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2) !important;
-        }
-
-        .reset-btn {
-            background: var(--card-bg) !important;
-            color: var(--text-main) !important;
-            border: 1px solid var(--border-color) !important;
-            font-weight: 600 !important;
-            height: 42px !important;
-            padding: 0 24px !important;
-            border-radius: 8px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            transition: all 0.3s ease !important;
-            text-decoration: none !important;
-        }
-
-        .reset-btn:hover {
-            background: rgba(255, 255, 255, 0.08) !important;
-            border-color: rgba(255, 255, 255, 0.15) !important;
-            transform: translateY(-2px);
-        }
-
-        body.light-theme .reset-btn:hover {
-            background: rgba(0, 0, 0, 0.05) !important;
-        }
-
-        /* Input Controls */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 13px;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .form-control {
-            background-color: var(--input-bg) !important;
-            border: 1px solid var(--border-color) !important;
-            color: var(--text-main) !important;
-            border-radius: 8px !important;
-            padding: 10px 14px !important;
-            height: auto !important;
-            transition: all 0.3s ease !important;
-            box-shadow: none !important;
-        }
-
-        .form-control:focus {
-            border-color: #6366f1 !important;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
-        }
-
-        .form-control::placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.6 !important;
-        }
-
-        .form-control::-webkit-input-placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.6 !important;
-        }
-
-        /* Pagination design */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 30px;
-            gap: 6px;
-        }
-
-        .pagination a {
-            color: var(--text-main);
-            background: var(--card-bg);
-            padding: 8px 16px;
-            text-decoration: none;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .pagination a:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-        }
-
-        .pagination a.active {
-            background: var(--primary) !important;
-            color: white !important;
-            border-color: var(--primary) !important;
-        }
-
-        .pagination span {
-            color: var(--text-muted);
-            padding: 8px 6px;
-            display: flex;
-            align-items: center;
+        /* Secondary Grid layout for dashboard tables */
+        .dashboard-tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
         }
 
         @media screen and (max-width: 768px) {
-            body {
-                padding: 20px 10px;
-            }
-            .dashboard-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 16px;
-            }
-            .overlay-content {
-                margin: 15% auto;
-                padding: 24px;
+            .dashboard-tables-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
 <div class="dashboard-header">
-    <h1>Invoice Dashboard</h1>
-    <div class="tabs-container">
-        <a href="index.php" class="tab-link active">Bills</a>
-        <a href="buyers.php" class="tab-link">Buyers</a>
+    <div class="header-top-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; position: relative;">
+        <!-- Left spacer -->
+        <div style="flex: 1; display: flex; justify-content: flex-start;"></div>
+        
+        <!-- Center Title -->
+        <h1 style="text-align: center; margin: 0; background: var(--heading-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Invoice Generator</h1>
+        
+        <!-- Right Theme Button -->
+        <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button id="themeToggle" class="btn">🌙 Theme</button>
+        </div>
     </div>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <button id="themeToggle" class="btn">
-            🌙 Theme
-        </button>
-        <!-- Button to open the form as an overlay -->
-        <button onclick="openForm()" class="btn btn-primary">Add Bill</button>
-    </div>
-</div>
-
-<!-- Overlay form -->
-<div id="overlayForm" class="overlay">
-    <div class="overlay-content">
-        <span class="close-btn" onclick="closeForm()">&times;</span>
-        <h1 id="modalTitle">Add Bill</h1>
-        <form id="billForm">
-
-        <input type="hidden" name="invoiceNumber" id="invoiceNumber">
-
-            <div class="form-group">
-                <label for="buyerIdSelect">Select Buyer:</label>
-                <select name="buyerIdSelect" id="buyerIdSelect" class="form-control" required>
-                    <option value="">-- Select a Buyer --</option>
-                    <?php foreach ($buyers as $b) { ?>
-                        <option value="<?php echo htmlspecialchars($b['id']); ?>" 
-                                data-name="<?php echo htmlspecialchars($b['buyer_name']); ?>"
-                                data-company="<?php echo htmlspecialchars($b['buyer_company']); ?>"
-                                data-address="<?php echo htmlspecialchars($b['buyer_address']); ?>">
-                            <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
-                        </option>
-                    <?php } ?>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="buyerName">Buyer Name:</label>
-                <input type="text" name="buyerName" id="buyerName" class="form-control" readonly>
-            </div>
-
-            <div class="form-group">
-                <label for="buyerCompany">Buyer Company:</label>
-                <input type="text" name="buyerCompany" id="buyerCompany" class="form-control" required readonly>
-            </div>
-
-            <div class="form-group">
-                <label for="buyerAddress">Buyer Address:</label>
-                <input type="text" name="buyerAddress" id="buyerAddress" class="form-control" required readonly>
-            </div>
-
-            <div class="form-group">
-                <label for="itemName">Item Name:</label>
-                <input type="text" name="itemName" id="itemName" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="quantity">Quantity (KG):</label>
-                <input type="number" value=0 step="0.01" name="quantity" id="quantity" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="bag">Bag:</label>
-                <input type="number" value=0 step="0.01" name="bag" id="bag" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="price">Price (Per KG):</label>
-                <input type="number" value=0 step="0.01" name="price" id="price" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="vehicleNumber">Vehicle Number:</label>
-                <input type="text" name="vehicleNumber" id="vehicleNumber" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label for="vehicleFreight">Vehicle Freight:</label>
-                <input type="number" value=0 step="0.01" value=0 name="vehicleFreight" id="vehicleFreight" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label for="balance">Balance Amount:</label>
-                <input type="number" value=0 step="0.01" name="balance" id="balance" class="form-control">
-            </div>
-
-            <button type="submit" class="btn btn-primary">Save</button>
-        </form>
+    
+    <div class="header-bottom-row" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 30px; flex-wrap: wrap; width: 100%;">
+        <div class="tabs-container">
+            <a href="index.php" class="tab-link active">Dashboard</a>
+            <a href="bills.php" class="tab-link">Bills</a>
+            <a href="buyers.php" class="tab-link">Buyers</a>
+        </div>
     </div>
 </div>
 
-<!-- Overlay form for editing balance -->
-<div id="balanceOverlayForm" class="overlay">
-    <div class="overlay-content">
-        <span class="close-btn" onclick="closeBalanceForm()">&times;</span>
-        <h1>Edit Balance</h1>
-        <form id="balanceForm">
-            <input type="hidden" name="balanceInvoiceNumber" id="balanceInvoiceNumber">
-            <div class="form-group">
-                <label for="balanceAmount">Balance Amount:</label>
-                <input type="number" step="0.01" name="balanceAmount" id="balanceAmount" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Save Balance</button>
-        </form>
-    </div>
-</div>
-
-<!-- Filter form -->
+<!-- Date filter form -->
 <div class="filter-container">
     <form method="GET" class="filter-form">
         <div class="filter-group">
-            <label for="buyer_filter">Filter by Buyer:</label>
-            <select name="buyer_filter" id="buyer_filter" class="form-control">
-                <option value="">-- All Buyers --</option>
-                <?php foreach ($buyers as $b) { ?>
-                    <option value="<?php echo htmlspecialchars($b['id']); ?>" <?php echo $buyer_filter == $b['id'] ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($b['buyer_company']); ?>
-                    </option>
-                <?php } ?>
+            <label for="month">Month:</label>
+            <select name="month" id="month" class="form-control">
+                <option value="all" <?php echo $selected_month === 'all' ? 'selected' : ''; ?>>All Months</option>
+                <?php
+                $months = [
+                    1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+                    5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+                    9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+                ];
+                foreach ($months as $num => $name) {
+                    $sel = ($selected_month !== 'all' && intval($selected_month) === $num) ? 'selected' : '';
+                    echo "<option value=\"$num\" $sel>$name</option>";
+                }
+                ?>
             </select>
         </div>
         <div class="filter-group">
-            <label for="balance_filter">Balance Status:</label>
-            <select name="balance_filter" id="balance_filter" class="form-control">
-                <option value="all" <?php echo $balance_filter === 'all' ? 'selected' : ''; ?>>All Bills</option>
-                <option value="remaining" <?php echo $balance_filter === 'remaining' ? 'selected' : ''; ?>>Balance Remaining (> 0)</option>
-                <option value="none" <?php echo $balance_filter === 'none' ? 'selected' : ''; ?>>No Balance (= 0)</option>
+            <label for="year">Year:</label>
+            <select name="year" id="year" class="form-control">
+                <option value="all" <?php echo $selected_year === 'all' ? 'selected' : ''; ?>>All Years</option>
+                <?php
+                foreach ($available_years as $yr) {
+                    $sel = ($selected_year !== 'all' && intval($selected_year) === intval($yr)) ? 'selected' : '';
+                    echo "<option value=\"$yr\" $sel>$yr</option>";
+                }
+                ?>
             </select>
         </div>
         <div class="filter-actions">
@@ -777,267 +620,160 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
     </form>
 </div>
 
-<!-- Table to display the data -->
-<div class="table-container">
-<table class="table">
-<thead>
-                <tr>
-                    <th>Invoice Number</th>
-                    <th>Invoice Date</th>
-                    <th>Buyer Company</th>
-                    <th>Buyer Address</th>
-                    <th>Item Name</th>
-                    <th>Bag</th>
-                    <th>Quantity (KG)</th>
-                    <th>Price (per KG)</th>
-                    <th>Amount</th>
-                    <th>Vehicle Number</th>
-                    <th>Vehicle Freight</th>
-                    <th>Balance</th>
-                    <th class="actions-header">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-        <?php foreach ($result as $row) { ?>
-            <tr>
-                <td><?php echo $row['invoice_number']; ?></td>
-                <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
-                <td><?php echo $row['buyer_company']; ?></td>
-                <td><?php echo $row['buyer_address']; ?></td>
-                <td><?php echo $row['item_name']; ?></td>
-                <td><?php echo $row['bag']; ?></td>
-                <td><?php echo $row['quantity']; ?></td>
-                <td><?php echo $row['price']; ?></td>
-                <td><?php echo $row['price']*$row['quantity']; ?></td>
-                <td><?php echo $row['vehicle_number']; ?></td>
-                <td><?php echo $row['vehicle_freight']; ?></td>
-                <td>
-                    <div style="font-weight: 600; margin-bottom: 6px;"><?php echo isset($row['balance']) ? htmlspecialchars($row['balance']) : '0.00'; ?></div>
-                    <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
-                </td>
-                <td class="actions-cell">
-                    <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
-                    <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
-                </td>
-            </tr>
-        <?php } ?>
-        </tbody>
-    </table>
+<!-- Stats Card Deck -->
+<div class="stats-grid">
+    <!-- Billing Card -->
+    <div class="stat-card" style="background: var(--g-blue);">
+        <div class="stat-label">Total Billing</div>
+        <div class="stat-value"><?php echo formatCurrency($total_billing); ?></div>
+        <div class="stat-subtext">Sales for the selected period</div>
+    </div>
+
+    <!-- Received Card -->
+    <div class="stat-card" style="background: var(--g-green);">
+        <div class="stat-label">Total Received</div>
+        <div class="stat-value"><?php echo formatCurrency($total_received); ?></div>
+        <div class="stat-subtext">Received payments in period</div>
+    </div>
+
+    <!-- Outstanding Balance Card -->
+    <div class="stat-card" style="background: var(--g-red);">
+        <div class="stat-label">Total Balance</div>
+        <div class="stat-value"><?php echo formatCurrency($total_balance); ?></div>
+        <div class="stat-subtext">Outstanding balances in period</div>
+    </div>
+
+    <!-- Top Buyer Card -->
+    <div class="stat-card" style="background: var(--g-purple);">
+        <div class="stat-label">Top Buyer</div>
+        <div class="stat-value" style="font-size: 1.6rem; margin: 14px 0 6px 0; font-weight: 700;"><?php echo htmlspecialchars($top_buyer_name); ?></div>
+        <div class="stat-subtext">Total Spent: <?php echo formatCurrency($top_buyer_revenue); ?></div>
+    </div>
+
+    <!-- Highest Balance Card -->
+    <div class="stat-card" style="background: var(--g-orange);">
+        <div class="stat-label">Highest Balance Holder</div>
+        <div class="stat-value" style="font-size: 1.6rem; margin: 14px 0 6px 0; font-weight: 700;"><?php echo htmlspecialchars($top_bal_name); ?></div>
+        <div class="stat-subtext">Remaining Balance: <?php echo formatCurrency($top_bal_amount); ?></div>
+    </div>
+
+    <!-- Other Stats Card -->
+    <div class="stat-card" style="background: var(--g-cyan);">
+        <div class="stat-label">Other Metrics</div>
+        <div style="margin: 6px 0;">
+            <div style="font-size: 12px; margin-bottom: 2px;">Invoices Generated: <strong><?php echo $total_invoices; ?></strong></div>
+            <div style="font-size: 12px; margin-bottom: 2px;">Avg Invoice: <strong><?php echo formatCurrency($total_invoices > 0 ? $total_billing / $total_invoices : 0); ?></strong></div>
+            <div style="font-size: 12px;">Quantity Sold: <strong><?php echo number_format($total_qty, 2); ?> KG</strong></div>
         </div>
-
-    <div class="pagination">
-    <?php
-    // Determine the range of page links to display
-    $num_links = 10; // Number of page links to show
-    $start = max(1, $page - floor($num_links / 2));
-    $end = min($start + $num_links - 1, $total_pages);
-
-    // Display the first page link
-    if ($start > 1) {
-        echo '<a href="' . getPaginationLink(1, $buyer_filter, $balance_filter) . '">1</a>';
-        echo '<span>&hellip;</span>';
-    }
-
-    // Display the page links within the range
-    for ($i = $start; $i <= $end; $i++) {
-        echo '<a href="' . getPaginationLink($i, $buyer_filter, $balance_filter) . '"';
-        if ($i == $page) {
-            echo ' class="active"';
-        }
-        echo '>' . $i . '</a>';
-    }
-
-    // Display the last page link
-    if ($end < $total_pages) {
-        echo '<span>&hellip;</span>';
-        echo '<a href="' . getPaginationLink($total_pages, $buyer_filter, $balance_filter) . '">' . $total_pages . '</a>';
-    }
-    ?>
+        <div class="stat-subtext">General business summary</div>
+    </div>
 </div>
+
+<div class="dashboard-tables-grid">
+    <!-- Top 5 Buyers list -->
+    <div>
+        <div class="section-title">Top 5 Buyers</div>
+        <div class="table-container">
+            <table class="table" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th>Buyer Company</th>
+                        <th>Contact Name</th>
+                        <th style="text-align: right;">Total Spent</th>
+                        <th style="text-align: right;">Outstanding</th>
+                        <th style="text-align: center;">Bills</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (count($top_buyers_list) > 0) { ?>
+                    <?php foreach ($top_buyers_list as $row) { ?>
+                        <tr>
+                            <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                            <td><?php echo htmlspecialchars($row['buyer_name'] ?: '-'); ?></td>
+                            <td style="text-align: right; font-weight: 500;"><?php echo formatCurrency($row['total_spent']); ?></td>
+                            <td style="text-align: right; color: <?php echo $row['total_outstanding'] > 0 ? '#f87171' : 'inherit'; ?>;"><?php echo formatCurrency($row['total_outstanding']); ?></td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background-color: var(--primary); font-size: 11px; padding: 2px 6px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                <?php } else { ?>
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">No buyer records found for this period.</td>
+                    </tr>
+                <?php } ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top 5 Recent Bills list -->
+    <div>
+        <div class="section-title">Recent Invoices</div>
+        <div class="table-container">
+            <table class="table" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th style="text-align: center; width: 60px;">Inv #</th>
+                        <th>Date</th>
+                        <th>Buyer Company</th>
+                        <th>Item</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th style="text-align: right;">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (count($recent_bills_list) > 0) { ?>
+                    <?php foreach ($recent_bills_list as $row) { ?>
+                        <tr>
+                            <td style="font-family: 'Courier New', Courier, monospace; font-weight: 700; color: #818cf8; text-align: center;">
+                                <?php echo htmlspecialchars($row['invoice_number']); ?>
+                            </td>
+                            <td style="font-size: 12px;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
+                            <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                            <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                            <td style="text-align: right; font-weight: 500;"><?php echo formatCurrency($row['quantity'] * $row['price'] + $row['vehicle_freight']); ?></td>
+                            <td style="text-align: right; font-weight: 500; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">
+                                <?php echo formatCurrency($row['balance']); ?>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                <?php } else { ?>
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No invoices found for this period.</td>
+                    </tr>
+                <?php } ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 </body>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    var balanceManuallyEdited = false;
-
     $(document).ready(function() {
-      // Handle buyer selection change
-      $('#buyerIdSelect').change(function() {
-        var selectedOption = $(this).find('option:selected');
-        if (selectedOption.val()) {
-          $('#buyerName').val(selectedOption.data('name') || '');
-          $('#buyerCompany').val(selectedOption.data('company') || '');
-          $('#buyerAddress').val(selectedOption.data('address') || '');
-        } else {
-          $('#buyerName').val('');
-          $('#buyerCompany').val('');
-          $('#buyerAddress').val('');
-        }
-      });
-
-      $('#quantity, #price, #vehicleFreight').on('input change', function() {
-        if (!balanceManuallyEdited) {
-          var qty = parseFloat($('#quantity').val()) || 0;
-          var price = parseFloat($('#price').val()) || 0;
-          var freight = parseFloat($('#vehicleFreight').val()) || 0;
-          var calculatedBalance = (qty * price) + freight;
-          $('#balance').val(calculatedBalance.toFixed(2));
-        }
-      });
-
-      $('#balance').on('input change', function() {
-        balanceManuallyEdited = true;
-      });
-
-  $('#billForm').submit(function(event) {
-    event.preventDefault(); // Prevent the default form submission
-
-    var invoiceNumber = $('input[name=invoiceNumber]').val(); // Check for invoice number (edit mode)
-    console.log("InvoiceNumber: "+invoiceNumber);
-    var vechicleFreight = $('input[name=vehicleFreight]').val();
-    console.log("vehicleFreight: "+vechicleFreight);
-    var billData = {
-        invoiceNumber: invoiceNumber, // Include invoiceNumber if updating
-        buyerId: $('#buyerIdSelect').val(),
-      buyerName: $('input[name=buyerName]').val(),
-      buyerCompany: $('input[name=buyerCompany]').val(),
-      buyerAddress: $('input[name=buyerAddress]').val(),
-      itemName: $('input[name=itemName]').val(),
-      quantity: parseFloat($('input[name=quantity]').val()),
-      price: parseFloat($('input[name=price]').val()),
-      bag: parseFloat($('input[name=bag]').val()),
-      vehicleNumber: $('input[name=vehicleNumber]').val(),
-      vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight,
-      balance: parseFloat($('input[name=balance]').val()) || 0.00
-      // Add more properties as needed
-    };
-    
-    // Send the form data to the PHP script
-    $.ajax({
-      url: 'save_bill.php',
-      type: 'POST',
-      data: { data: billData },
-      success: function(response) {
-        // Handle the response from the server
-        console.log(response);
-        Swal.fire(
-        response
-        ).then(function(){ 
-       location.reload();
-   });
-      },
-      error: function(xhr, status, error) {
-        // Handle errors
-        console.error(error);
-        Swal.fire(
-        "Failed to save bill"
-        )
-      }
-    });
-  });
-
-  $('#balanceForm').submit(function(event) {
-    event.preventDefault();
-
-    var invoiceNumber = $('input[name=balanceInvoiceNumber]').val();
-    var balance = parseFloat($('input[name=balanceAmount]').val());
-
-    $.ajax({
-      url: 'save_balance.php',
-      type: 'POST',
-      data: { invoiceNumber: invoiceNumber, balance: balance },
-      success: function(response) {
-        console.log(response);
-        Swal.fire(response).then(function() {
-          location.reload();
+        // Theme toggle handler
+        $('#themeToggle').click(function() {
+            $('body').toggleClass('light-theme');
+            if ($('body').hasClass('light-theme')) {
+                localStorage.setItem('theme', 'light');
+                $('#themeToggle').text('☀️ Theme');
+            } else {
+                localStorage.setItem('theme', 'dark');
+                $('#themeToggle').text('🌙 Theme');
+            }
         });
-      },
-      error: function(xhr, status, error) {
-        console.error(error);
-        Swal.fire("Failed to save balance");
-      }
+
+        // Restore theme preference
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            $('body').addClass('light-theme');
+            $('#themeToggle').text('☀️ Theme');
+        } else {
+            $('body').removeClass('light-theme');
+            $('#themeToggle').text('🌙 Theme');
+        }
     });
-  });
-
-  // Theme toggle handler
-  $('#themeToggle').click(function() {
-    $('body').toggleClass('light-theme');
-    if ($('body').hasClass('light-theme')) {
-      localStorage.setItem('theme', 'light');
-      $('#themeToggle').text('☀️ Theme');
-    } else {
-      localStorage.setItem('theme', 'dark');
-      $('#themeToggle').text('🌙 Theme');
-    }
-  });
-
-  // Restore theme preference
-  var savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'light') {
-    $('body').addClass('light-theme');
-    $('#themeToggle').text('☀️ Theme');
-  } else {
-    $('body').removeClass('light-theme');
-    $('#themeToggle').text('🌙 Theme');
-  }
-});
-        // Function to open the form overlay
-        function openForm() {
-            clearForm();
-            $('#modalTitle').text('Add Bill');
-            document.getElementById("overlayForm").style.display = "block";
-            balanceManuallyEdited = false;
-        }
-
-        // Function to close the form overlay
-        function closeForm() {
-            document.getElementById("overlayForm").style.display = "none";
-        }
-
-        // Function to open the form overlay for editing a bill with pre-filled details
-        function editBill(bill) {
-            $('#modalTitle').text('Edit Bill');
-            document.getElementById("overlayForm").style.display = "block";
-            balanceManuallyEdited = true;
-
-            // Populate the form with existing bill data for editing
-            $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
-            $('#buyerIdSelect').val(bill.buyer_id);
-            $('#buyerIdSelect').trigger('change');
-            $('input[name=itemName]').val(bill.item_name);
-            $('input[name=quantity]').val(bill.quantity);
-            $('input[name=price]').val(bill.price);
-            $('input[name=bag]').val(bill.bag);
-            $('input[name=vehicleNumber]').val(bill.vehicle_number);
-            $('input[name=vehicleFreight]').val(bill.vehicle_freight);
-            $('input[name=balance]').val(bill.balance);
-        }
-
-        // Function to clear the form inputs
-        function clearForm() {
-        $('input[name=invoiceNumber]').val('');
-        $('#buyerIdSelect').val('');
-        $('#buyerIdSelect').trigger('change');
-        document.getElementById('itemName').value = '';
-        document.getElementById('quantity').value = '';
-        document.getElementById('price').value = '';
-        document.getElementById('bag').value = '';
-        document.getElementById('vehicleNumber').value = '';
-        document.getElementById('vehicleFreight').value = '';
-        document.getElementById('balance').value = '';
-        balanceManuallyEdited = false;
-        }
-
-        // Function to open the balance form overlay with pre-filled balance
-        function editBalance(bill) {
-            document.getElementById("balanceOverlayForm").style.display = "block";
-            $('input[name=balanceInvoiceNumber]').val(bill.invoice_number);
-            $('input[name=balanceAmount]').val(bill.balance !== null && bill.balance !== undefined ? bill.balance : '0.00');
-        }
-
-        // Function to close the balance form overlay
-        function closeBalanceForm() {
-            document.getElementById("balanceOverlayForm").style.display = "none";
-        }
-    </script>
+</script>
 </html>

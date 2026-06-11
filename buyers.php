@@ -124,9 +124,6 @@ try {
 
         /* Top Bar Container */
         .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 40px;
         }
 
@@ -478,17 +475,30 @@ try {
 </head>
 <body>
 <div class="dashboard-header">
-    <h1>Buyer Directory</h1>
-    <div class="tabs-container">
-        <a href="index.php" class="tab-link">Bills</a>
-        <a href="buyers.php" class="tab-link active">Buyers</a>
+    <div class="header-top-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; position: relative;">
+        <!-- Left spacer -->
+        <div style="flex: 1; display: flex; justify-content: flex-start;"></div>
+        
+        <!-- Center Title -->
+        <h1 style="text-align: center; margin: 0; background: var(--heading-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Invoice Generator</h1>
+        
+        <!-- Right Theme Button -->
+        <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button id="themeToggle" class="btn">🌙 Theme</button>
+        </div>
     </div>
-    <div style="display: flex; gap: 12px; align-items: center;">
-        <button id="themeToggle" class="btn">
-            🌙 Theme
-        </button>
-        <button onclick="openMergeForm()" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;">Merge Buyers</button>
-        <button onclick="openForm()" class="btn btn-primary">Add Buyer</button>
+    
+    <div class="header-bottom-row" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 30px; flex-wrap: wrap; width: 100%;">
+        <div class="tabs-container">
+            <a href="index.php" class="tab-link">Dashboard</a>
+            <a href="bills.php" class="tab-link">Bills</a>
+            <a href="buyers.php" class="tab-link active">Buyers</a>
+        </div>
+        
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button onclick="openMergeForm()" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;">Merge Buyers</button>
+            <button onclick="openForm()" class="btn btn-primary">Add Buyer</button>
+        </div>
     </div>
 </div>
 
