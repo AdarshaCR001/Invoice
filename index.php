@@ -116,12 +116,53 @@ try {
             display: inline-block;
         }
 
-        /* Top Bar Container */
         .dashboard-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 40px;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        body.light-theme .tabs-container {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .tab-link {
+            color: var(--text-muted) !important;
+            text-decoration: none !important;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            height: 34px;
+            box-sizing: border-box;
+        }
+
+        .tab-link:hover {
+            color: var(--text-main) !important;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        body.light-theme .tab-link:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .tab-link.active {
+            color: #ffffff !important;
+            background: var(--primary) !important;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
         }
 
         #themeToggle {
@@ -477,6 +518,10 @@ try {
 <body>
 <div class="dashboard-header">
     <h1>Invoice Dashboard</h1>
+    <div class="tabs-container">
+        <a href="index.php" class="tab-link active">Bills</a>
+        <a href="buyers.php" class="tab-link">Buyers</a>
+    </div>
     <div style="display: flex; gap: 12px; align-items: center;">
         <button id="themeToggle" class="btn">
             🌙 Theme
