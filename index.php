@@ -142,11 +142,6 @@ try {
 } catch (PDOException $e) {
     echo "Query failed: " . $e->getMessage();
 }
-
-// Helper to format currency
-function formatCurrency($val) {
-    return '₹ ' . number_format($val, 2);
-}
 ?>
 
 <!DOCTYPE html>

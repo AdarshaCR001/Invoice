@@ -814,12 +814,12 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                 <td><?php echo $row['item_name']; ?></td>
                 <td><?php echo $row['bag']; ?></td>
                 <td><?php echo $row['quantity']; ?></td>
-                <td><?php echo $row['price']; ?></td>
-                <td><?php echo $row['price']*$row['quantity']; ?></td>
+                <td><?php echo formatIndianCurrency($row['price']); ?></td>
+                <td><?php echo formatIndianCurrency($row['price'] * $row['quantity']); ?></td>
                 <td><?php echo $row['vehicle_number']; ?></td>
-                <td><?php echo $row['vehicle_freight']; ?></td>
+                <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
                 <td>
-                    <div style="font-weight: 600; margin-bottom: 6px;"><?php echo isset($row['balance']) ? htmlspecialchars($row['balance']) : '0.00'; ?></div>
+                    <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
                     <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
                 </td>
                 <td class="actions-cell">
