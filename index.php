@@ -26,6 +26,11 @@ try {
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Retrieve list of buyers for the form dropdown selection
+    $stmt_buyers = $conn->prepare("SELECT * FROM buyers ORDER BY buyer_company ASC");
+    $stmt_buyers->execute();
+    $buyers = $stmt_buyers->fetchAll(PDO::FETCH_ASSOC);
+
     // Count total number of records
     $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM bills");
     $stmt->execute();
@@ -139,6 +144,23 @@ try {
         }
         body.light-theme #themeToggle:hover {
             background: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        select.form-control option {
+            background-color: var(--modal-bg) !important;
+            color: var(--text-main) !important;
+        }
+
+        .form-control[readonly] {
+            background-color: rgba(255, 255, 255, 0.02) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            border-style: dashed !important;
+        }
+        
+        body.light-theme .form-control[readonly] {
+            background-color: rgba(0, 0, 0, 0.03) !important;
+            color: var(--text-muted) !important;
         }
 
         /* Upgrade add button */
@@ -468,24 +490,39 @@ try {
 <div id="overlayForm" class="overlay">
     <div class="overlay-content">
         <span class="close-btn" onclick="closeForm()">&times;</span>
-        <h1>Add Bill</h1>
+        <h1 id="modalTitle">Add Bill</h1>
         <form id="billForm">
 
         <input type="hidden" name="invoiceNumber" id="invoiceNumber">
 
             <div class="form-group">
+                <label for="buyerIdSelect">Select Buyer:</label>
+                <select name="buyerIdSelect" id="buyerIdSelect" class="form-control" required>
+                    <option value="">-- Select a Buyer --</option>
+                    <?php foreach ($buyers as $b) { ?>
+                        <option value="<?php echo htmlspecialchars($b['id']); ?>" 
+                                data-name="<?php echo htmlspecialchars($b['buyer_name']); ?>"
+                                data-company="<?php echo htmlspecialchars($b['buyer_company']); ?>"
+                                data-address="<?php echo htmlspecialchars($b['buyer_address']); ?>">
+                            <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
+                        </option>
+                    <?php } ?>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="buyerName">Buyer Name:</label>
-                <input type="text" name="buyerName" id="buyerName" class="form-control">
+                <input type="text" name="buyerName" id="buyerName" class="form-control" readonly>
             </div>
 
             <div class="form-group">
                 <label for="buyerCompany">Buyer Company:</label>
-                <input type="text" name="buyerCompany" id="buyerCompany" class="form-control" required>
+                <input type="text" name="buyerCompany" id="buyerCompany" class="form-control" required readonly>
             </div>
 
             <div class="form-group">
                 <label for="buyerAddress">Buyer Address:</label>
-                <input type="text" name="buyerAddress" id="buyerAddress" class="form-control" required>
+                <input type="text" name="buyerAddress" id="buyerAddress" class="form-control" required readonly>
             </div>
 
             <div class="form-group">
@@ -628,6 +665,20 @@ try {
     var balanceManuallyEdited = false;
 
     $(document).ready(function() {
+      // Handle buyer selection change
+      $('#buyerIdSelect').change(function() {
+        var selectedOption = $(this).find('option:selected');
+        if (selectedOption.val()) {
+          $('#buyerName').val(selectedOption.data('name') || '');
+          $('#buyerCompany').val(selectedOption.data('company') || '');
+          $('#buyerAddress').val(selectedOption.data('address') || '');
+        } else {
+          $('#buyerName').val('');
+          $('#buyerCompany').val('');
+          $('#buyerAddress').val('');
+        }
+      });
+
       $('#quantity, #price, #vehicleFreight').on('input change', function() {
         if (!balanceManuallyEdited) {
           var qty = parseFloat($('#quantity').val()) || 0;
@@ -651,6 +702,7 @@ try {
     console.log("vehicleFreight: "+vechicleFreight);
     var billData = {
         invoiceNumber: invoiceNumber, // Include invoiceNumber if updating
+        buyerId: $('#buyerIdSelect').val(),
       buyerName: $('input[name=buyerName]').val(),
       buyerCompany: $('input[name=buyerCompany]').val(),
       buyerAddress: $('input[name=buyerAddress]').val(),
@@ -736,6 +788,7 @@ try {
         // Function to open the form overlay
         function openForm() {
             clearForm();
+            $('#modalTitle').text('Add Bill');
             document.getElementById("overlayForm").style.display = "block";
             balanceManuallyEdited = false;
         }
@@ -747,14 +800,14 @@ try {
 
         // Function to open the form overlay for editing a bill with pre-filled details
         function editBill(bill) {
+            $('#modalTitle').text('Edit Bill');
             document.getElementById("overlayForm").style.display = "block";
             balanceManuallyEdited = true;
 
             // Populate the form with existing bill data for editing
             $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
-            $('input[name=buyerName]').val(bill.buyer_name);
-            $('input[name=buyerCompany]').val(bill.buyer_company);
-            $('input[name=buyerAddress]').val(bill.buyer_address);
+            $('#buyerIdSelect').val(bill.buyer_id);
+            $('#buyerIdSelect').trigger('change');
             $('input[name=itemName]').val(bill.item_name);
             $('input[name=quantity]').val(bill.quantity);
             $('input[name=price]').val(bill.price);
@@ -767,9 +820,8 @@ try {
         // Function to clear the form inputs
         function clearForm() {
         $('input[name=invoiceNumber]').val('');
-        document.getElementById('buyerName').value = '';
-        document.getElementById('buyerCompany').value = '';
-        document.getElementById('buyerAddress').value = '';
+        $('#buyerIdSelect').val('');
+        $('#buyerIdSelect').trigger('change');
         document.getElementById('itemName').value = '';
         document.getElementById('quantity').value = '';
         document.getElementById('price').value = '';

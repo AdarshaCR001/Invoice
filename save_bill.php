@@ -21,15 +21,21 @@ try {
 
     $billData['balance'] = isset($billData['balance']) ? floatval($billData['balance']) : 0.00;
 
+    // Extract selected buyerId from post data
+    $buyer_id = isset($billData['buyerId']) ? intval($billData['buyerId']) : 0;
+
+    if ($buyer_id <= 0) {
+        echo 'Error: Buyer selection is required.';
+        exit;
+    }
+
     if (!empty($billData['invoiceNumber'])) {
         // If invoiceNumber is present, perform an update
         $billData['updatedOn'] = date('Y-m-d');
 
         // Prepare the SQL statement for updating the record by invoice_number
         $stmt = $conn->prepare("UPDATE bills 
-                                SET buyer_name = :buyerName, 
-                                    buyer_company = :buyerCompany, 
-                                    buyer_address = :buyerAddress, 
+                                SET buyer_id = :buyerId, 
                                     item_name = :itemName, 
                                     quantity = :quantity, 
                                     price = :price, 
@@ -46,16 +52,14 @@ try {
         $billData['createdOn'] = date('Y-m-d');
 
         // Prepare the SQL statement for inserting a new record
-        $stmt = $conn->prepare("INSERT INTO bills (buyer_name, buyer_company, buyer_address, item_name, quantity, price, bag, vehicle_number, vehicle_freight, balance, created_on, updated_on) 
-                               VALUES (:buyerName, :buyerCompany, :buyerAddress, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :balance, :createdOn, :updatedOn)");
+        $stmt = $conn->prepare("INSERT INTO bills (buyer_id, item_name, quantity, price, bag, vehicle_number, vehicle_freight, balance, created_on, updated_on) 
+                               VALUES (:buyerId, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :balance, :createdOn, :updatedOn)");
 
         echo 'Bill data inserted successfully!';
     }
 
     // Bind the parameters (same for both insert and update)
-    $stmt->bindParam(':buyerName', $billData['buyerName']);
-    $stmt->bindParam(':buyerCompany', $billData['buyerCompany']);
-    $stmt->bindParam(':buyerAddress', $billData['buyerAddress']);
+    $stmt->bindParam(':buyerId', $buyer_id);
     $stmt->bindParam(':itemName', $billData['itemName']);
     $stmt->bindParam(':quantity', $billData['quantity']);
     $stmt->bindParam(':price', $billData['price']);
@@ -65,7 +69,7 @@ try {
     $stmt->bindParam(':balance', $billData['balance']);
 
     if (!empty($billData['invoiceNumber'])) {
-        $stmt->bindParam(':updatedOn', $billData['createdOn']);
+        $stmt->bindParam(':updatedOn', $billData['updatedOn']);
         $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
     } else {
         $stmt->bindParam(':createdOn', $billData['createdOn']);
@@ -100,7 +104,7 @@ try {
     $stmt = $conn->prepare("UPDATE bills SET url = :url WHERE invoice_number = :invoiceNumber");
     $stmt->bindParam(':url', $fileKey);
     $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
-    
+
     // Execute the update query for the file URL
     $stmt->execute();
 
