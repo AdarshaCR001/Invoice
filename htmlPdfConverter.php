@@ -6,15 +6,14 @@ use Dompdf\Dompdf;
 
 function fileCreate($preName, $html){
     //Load Signature
-    // Use environment variable for signature path with a default
-    $imagePath = $_ENV['APP_SIGNATURE_IMAGE_PATH'] ?? 'templates/Devraj_Sign.jpeg';
-    if (file_exists($imagePath)) {
-        $imageData = base64_encode(file_get_contents($imagePath));
-        $imageSrc = 'data:image/jpeg;base64,' . $imageData;
+    $imagePath = __DIR__ . '/template/Devraj_Sign.jpeg';
+    $imageData = @file_get_contents($imagePath);
+    if ($imageData !== false) {
+        $base64 = base64_encode($imageData);
+        $imageSrc = 'data:image/jpeg;base64,' . $base64;
     } else {
-        // Fallback if image not found, or log an error
-        $imageSrc = ''; // Or a placeholder image / error message
-        error_log("Signature image not found at path: " . $imagePath);
+        // Fallback: Empty 1x1 pixel to prevent the "Big X" box
+        $imageSrc = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     }
 
     // replace signature in html
@@ -31,23 +30,17 @@ function fileCreate($preName, $html){
     // Render the HTML to PDF
     $dompdf->render();
 
-    // Sanitize preName further for filesystem safety
-    $safePreName = preg_replace('/[^A-Za-z0-9_-]/', '', $preName);
-    if (empty($safePreName)) {
-        $safePreName = 'invoice'; // Default if company name is empty or all special chars
-    }
+    // Output the PDF to the browser
+    $randomCode = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // Generate a unique filename
-    $uniqueId = uniqid($safePreName . '_', true); // Prefixed and more entropy
-    $outputFilePath = $uniqueId . '.pdf';
-    
+    $outputFilePath = $preName."".$randomCode.'.pdf';
     file_put_contents($outputFilePath, $dompdf->output());
     return $outputFilePath;
 }
 
 function getUpdatedPdf($bill) {
     // Get the HTML content from the file
-    $htmlContent = file_get_contents("templates/billTemplate.html");
+    $htmlContent = file_get_contents("template/billTemplate.html");
 
     $amount = 0;
     if (isset($bill['quantity']) && isset($bill['price'])) {
@@ -63,7 +56,6 @@ function getUpdatedPdf($bill) {
 
     $dynamicContent = str_replace(
         array(
-            // Existing placeholders
             "BUYER_NAME",
             "BUYER_COMPANY",
             "BUYER_ADDRESS",
@@ -76,20 +68,9 @@ function getUpdatedPdf($bill) {
             "INVOICE_NUMBER",
             "DATE",
             "VEHICLE_FREIGHT",
-            "TOTAL_AMT",
-            // New placeholders from template
-            "APP_GSTIN_PLACEHOLDER",
-            "APP_PHONE_PRIMARY_PLACEHOLDER",
-            "APP_PHONE_SECONDARY_PLACEHOLDER",
-            "APP_COMPANY_NAME_PLACEHOLDER",
-            "APP_COMPANY_ADDRESS_PLACEHOLDER",
-            "APP_BANK_ACCOUNT_NAME_PLACEHOLDER",
-            "APP_BANK_NAME_PLACEHOLDER",
-            "APP_BANK_ACC_NO_PLACEHOLDER",
-            "APP_BANK_IFSC_PLACEHOLDER"
+            "TOTAL_AMT"
         ),
         array(
-            // Existing values
             isset($bill['buyerName']) ? $bill['buyerName'] : "",
             isset($bill['buyerCompany']) ? $bill['buyerCompany'] : "",
             isset($bill['buyerAddress']) ? $bill['buyerAddress'] : "",
@@ -102,17 +83,7 @@ function getUpdatedPdf($bill) {
             $bill['invoiceNumber'],
             $dateFormatInDDMMYYYY,
             isset($bill['vehicleFreight']) ? $bill['vehicleFreight'] : "",
-            $totalAmount,
-            // New values from $_ENV with defaults
-            $_ENV['APP_GSTIN'] ?? 'YOUR_GSTIN_HERE',
-            $_ENV['APP_PHONE_PRIMARY'] ?? '0000000000',
-            $_ENV['APP_PHONE_SECONDARY'] ?? '0000000000',
-            $_ENV['APP_COMPANY_NAME'] ?? 'Your Company Name',
-            $_ENV['APP_COMPANY_ADDRESS'] ?? 'Your Company Address',
-            $_ENV['APP_BANK_ACCOUNT_NAME'] ?? 'Your Bank Account Name',
-            $_ENV['APP_BANK_NAME'] ?? 'Your Bank Name',
-            $_ENV['APP_BANK_ACC_NO'] ?? '0000000000000',
-            $_ENV['APP_BANK_IFSC'] ?? 'YOURIFSC000'
+            $totalAmount
         ),
         $htmlContent
     );

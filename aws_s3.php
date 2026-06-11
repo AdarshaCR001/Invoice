@@ -14,8 +14,8 @@ class AWSUploader {
     private $s3_region;
 
     public function __construct() {
-        $this->aws_id = $_ENV['AWS_ACCESS_KEY_ID'];
-        $this->aws_key = $_ENV['AWS_SECRET_ACCESS_KEY'];
+        $this->aws_id = $_ENV['AWS_Id'];
+        $this->aws_key = $_ENV['AWS_Key'];
         $this->s3_bucket = $_ENV['S3_BUCKET'];
         $this->s3_region = $_ENV['S3_REGION'];
     }
@@ -24,11 +24,11 @@ class AWSUploader {
         $s3 = new S3Client([
             'version' => 'latest',
             'region' => $this->s3_region,
-            // We need this since in the deployable application can't acccess env values
+            'accessKeyId' => $this->aws_id,
             'credentials' => [
-                 'key' => $this->aws_id,
-                 'secret' => $this->aws_key,
-             ]
+                'key' => $this->aws_id,
+                'secret' => $this->aws_key,
+            ]
         ]);
 
         $metadata = stream_get_meta_data($file);
@@ -43,23 +43,25 @@ class AWSUploader {
             ]);
 
             return $fileKey;
-        } catch (AwsException $e) { // Catching generic AwsException is better for S3
+        } catch (S3Exception $e) {
             // Error occurred while uploading the file to S3
-            error_log("S3Exception in AWSUploader::uploadFile: " . $e->getMessage() . " | Attempted File key: " . $fileKey);
-            return false;
+            echo 'Error: ' . $e->getMessage();
         }
     }
 
     public function getFile($fileKey) {
         $s3 = new S3Client([
             'version' => 'latest',
-            'region' => $this->s3_region
-            // AWS SDK will automatically look for credentials in environment variables
+            'region' => $this->region,
+            'credentials' => [
+                'key' => $this->awsKey,
+                'secret' => $this->awsSecret,
+            ],
         ]);
 
         try {
             $result = $s3->getObject([
-                'Bucket' => $this->s3_bucket, // Corrected: use class property
+                'Bucket' => $this->bucketName,
                 'Key' => $fileKey,
             ]);
 
@@ -68,10 +70,9 @@ class AWSUploader {
             file_put_contents($fileName, $fileContent);
 
             return $fileName;
-        } catch (AwsException $e) { // Catching generic AwsException is better for S3
+        } catch (S3Exception $e) {
             // Error occurred while retrieving the file from S3
-            error_log("S3Exception in AWSUploader::getFile: " . $e->getMessage() . " | File key: " . $fileKey);
-            return false; // Returning false for consistency
+            echo 'Error: ' . $e->getMessage();
         }
     }
 }
