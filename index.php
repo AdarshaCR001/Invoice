@@ -236,7 +236,7 @@ try {
 <thead>
                 <tr>
                     <th>Invoice Number</th>
-                    <th>Buyer Name</th>
+                    <th>Invoice Date</th>
                     <th>Buyer Company</th>
                     <th>Buyer Address</th>
                     <th>Item Name</th>
@@ -254,7 +254,7 @@ try {
         <?php foreach ($result as $row) { ?>
             <tr>
                 <td><?php echo $row['invoice_number']; ?></td>
-                <td><?php echo $row['buyer_name']; ?></td>
+                <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
                 <td><?php echo $row['buyer_company']; ?></td>
                 <td><?php echo $row['buyer_address']; ?></td>
                 <td><?php echo $row['item_name']; ?></td>
