@@ -41,6 +41,11 @@ try {
 
     // Calculate total number of pages
     $total_pages = ceil($total_records / $records_per_page);
+
+    // Retrieve all buyers for the dropdown list in Merge modal
+    $stmt_all_buyers = $conn->prepare("SELECT id, buyer_name, buyer_company FROM buyers ORDER BY buyer_company ASC");
+    $stmt_all_buyers->execute();
+    $all_buyers = $stmt_all_buyers->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Query failed: " . $e->getMessage();
 }
@@ -187,6 +192,11 @@ try {
         }
         body.light-theme #themeToggle:hover {
             background: rgba(0, 0, 0, 0.05) !important;
+        }
+
+        select.form-control option {
+            background-color: var(--modal-bg) !important;
+            color: var(--text-main) !important;
         }
 
         /* Upgrade add button */
@@ -477,7 +487,43 @@ try {
         <button id="themeToggle" class="btn">
             🌙 Theme
         </button>
+        <button onclick="openMergeForm()" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;">Merge Buyers</button>
         <button onclick="openForm()" class="btn btn-primary">Add Buyer</button>
+    </div>
+</div>
+
+<!-- Merge Overlay form -->
+<div id="mergeOverlayForm" class="overlay">
+    <div class="overlay-content">
+        <span class="close-btn" onclick="closeMergeForm()">&times;</span>
+        <h1>Merge Buyers</h1>
+        <form id="mergeBuyersForm">
+            <div class="form-group">
+                <label for="sourceBuyerId">Source Buyer (Duplicate - WILL BE DELETED):</label>
+                <select name="sourceBuyerId" id="sourceBuyerId" class="form-control" required>
+                    <option value="">-- Select Source Buyer --</option>
+                    <?php foreach ($all_buyers as $b) { ?>
+                        <option value="<?php echo htmlspecialchars($b['id']); ?>">
+                            <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
+                        </option>
+                    <?php } ?>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="targetBuyerId">Target Buyer (Primary - Will Keep Linked Bills):</label>
+                <select name="targetBuyerId" id="targetBuyerId" class="form-control" required>
+                    <option value="">-- Select Target Buyer --</option>
+                    <?php foreach ($all_buyers as $b) { ?>
+                        <option value="<?php echo htmlspecialchars($b['id']); ?>">
+                            <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
+                        </option>
+                    <?php } ?>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;">Execute Merge</button>
+        </form>
     </div>
 </div>
 
@@ -636,7 +682,77 @@ try {
             $('body').removeClass('light-theme');
             $('#themeToggle').text('🌙 Theme');
         }
+
+        $('#mergeBuyersForm').submit(function(event) {
+            event.preventDefault();
+
+            var sourceId = $('#sourceBuyerId').val();
+            var targetId = $('#targetBuyerId').val();
+
+            if (sourceId === targetId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Selection',
+                    text: 'Source and Target buyers must be different.'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'All linked invoices will be moved to the target buyer, and the source buyer will be deleted permanently!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, merge them!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: 'merge_buyers.php',
+                        type: 'POST',
+                        data: { sourceId: sourceId, targetId: targetId },
+                        success: function(response) {
+                            console.log(response);
+                            if (response.indexOf('Error:') === 0) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Failed',
+                                    text: response.replace('Error:', '').trim()
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response
+                                }).then(function() {
+                                    location.reload();
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed',
+                                text: 'Failed to merge buyers.'
+                            });
+                        }
+                    });
+                }
+            });
+        });
     });
+
+    function openMergeForm() {
+        $('#sourceBuyerId').val('');
+        $('#targetBuyerId').val('');
+        document.getElementById("mergeOverlayForm").style.display = "block";
+    }
+
+    function closeMergeForm() {
+        document.getElementById("mergeOverlayForm").style.display = "none";
+    }
 
     function openForm() {
         clearForm();
