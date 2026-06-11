@@ -1,5 +1,7 @@
 USE invoice_db;
 
+ALTER TABLE bills ADD COLUMN balance DECIMAL(10,2) DEFAULT 0.00;
+
 -- Create buyers table
 CREATE TABLE IF NOT EXISTS buyers (
     id INT AUTO_INCREMENT PRIMARY KEY,
