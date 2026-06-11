@@ -509,11 +509,10 @@ try {
         <h1>Merge Buyers</h1>
         <form id="mergeBuyersForm">
             <div class="form-group">
-                <label for="sourceBuyerId">Source Buyer (Duplicate - WILL BE DELETED):</label>
-                <select name="sourceBuyerId" id="sourceBuyerId" class="form-control" required>
-                    <option value="">-- Select Source Buyer --</option>
+                <label for="sourceBuyerId">Source Buyers (Duplicates - WILL BE DELETED - Hold Cmd/Ctrl to select multiple):</label>
+                <select name="sourceBuyerId[]" id="sourceBuyerId" class="form-control" required multiple style="height: 120px !important; padding: 6px !important;">
                     <?php foreach ($all_buyers as $b) { ?>
-                        <option value="<?php echo htmlspecialchars($b['id']); ?>">
+                        <option value="<?php echo htmlspecialchars($b['id']); ?>" data-company="<?php echo htmlspecialchars($b['buyer_company']); ?>">
                             <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
                         </option>
                     <?php } ?>
@@ -525,7 +524,7 @@ try {
                 <select name="targetBuyerId" id="targetBuyerId" class="form-control" required>
                     <option value="">-- Select Target Buyer --</option>
                     <?php foreach ($all_buyers as $b) { ?>
-                        <option value="<?php echo htmlspecialchars($b['id']); ?>">
+                        <option value="<?php echo htmlspecialchars($b['id']); ?>" data-company="<?php echo htmlspecialchars($b['buyer_company']); ?>">
                             <?php echo htmlspecialchars($b['buyer_company']); ?> (<?php echo htmlspecialchars($b['buyer_name']); ?>)
                         </option>
                     <?php } ?>
@@ -696,21 +695,46 @@ try {
         $('#mergeBuyersForm').submit(function(event) {
             event.preventDefault();
 
-            var sourceId = $('#sourceBuyerId').val();
+            var sourceIds = $('#sourceBuyerId').val() || [];
             var targetId = $('#targetBuyerId').val();
 
-            if (sourceId === targetId) {
+            if (sourceIds.length === 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Invalid Selection',
-                    text: 'Source and Target buyers must be different.'
+                    text: 'Please select at least one source buyer.'
                 });
                 return;
             }
 
+            if (sourceIds.indexOf(targetId) !== -1) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Selection',
+                    text: 'Target buyer cannot be in the list of source buyers to merge.'
+                });
+                return;
+            }
+
+            var sourceTexts = [];
+            $('#sourceBuyerId option:selected').each(function() {
+                sourceTexts.push($(this).data('company'));
+            });
+            var targetText = $('#targetBuyerId option:selected').data('company');
+
+            var htmlMessage = '<div style="text-align: left; font-size: 14px;">' +
+                              '<p>You are about to merge the following duplicate buyers:</p>' +
+                              '<ul style="margin-bottom: 16px; font-weight: 600; color: #ef4444; padding-left: 20px;">' +
+                              sourceTexts.map(function(t) { return '<li>' + t + '</li>'; }).join('') +
+                              '</ul>' +
+                              '<p>Into the target buyer:</p>' +
+                              '<p style="font-weight: 600; color: #10b981; margin-bottom: 16px; padding-left: 5px;">' + targetText + '</p>' +
+                              '<p>All linked invoices will be moved, and the source buyers will be deleted permanently.</p>' +
+                              '</div>';
+
             Swal.fire({
                 title: 'Are you sure?',
-                text: 'All linked invoices will be moved to the target buyer, and the source buyer will be deleted permanently!',
+                html: htmlMessage,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
@@ -721,7 +745,7 @@ try {
                     $.ajax({
                         url: 'merge_buyers.php',
                         type: 'POST',
-                        data: { sourceId: sourceId, targetId: targetId },
+                        data: { sourceIds: sourceIds, targetId: targetId },
                         success: function(response) {
                             console.log(response);
                             if (response.indexOf('Error:') === 0) {
