@@ -209,6 +209,22 @@ try {
     </div>
 </div>
 
+<!-- Overlay form for editing balance -->
+<div id="balanceOverlayForm" class="overlay">
+    <div class="overlay-content">
+        <span class="close-btn" onclick="closeBalanceForm()">&times;</span>
+        <h1>Edit Balance</h1>
+        <form id="balanceForm">
+            <input type="hidden" name="balanceInvoiceNumber" id="balanceInvoiceNumber">
+            <div class="form-group">
+                <label for="balanceAmount">Balance Amount:</label>
+                <input type="number" step="0.01" name="balanceAmount" id="balanceAmount" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Balance</button>
+        </form>
+    </div>
+</div>
+
 <!-- Table to display the data -->
 <div class="table-container">
 <table class="table">
@@ -225,6 +241,7 @@ try {
                     <th>Amount</th>
                     <th>Vehicle Number</th>
                     <th>Vehicle Freight</th>
+                    <th>Balance</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -242,9 +259,11 @@ try {
                 <td><?php echo $row['price']*$row['quantity']; ?></td>
                 <td><?php echo $row['vehicle_number']; ?></td>
                 <td><?php echo $row['vehicle_freight']; ?></td>
+                <td><?php echo isset($row['balance']) ? htmlspecialchars($row['balance']) : '0.00'; ?></td>
                 <td>
                     <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
                     <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                    <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit Balance</button>
                 </td>
             </tr>
         <?php } ?>
@@ -330,6 +349,29 @@ try {
       }
     });
   });
+
+  $('#balanceForm').submit(function(event) {
+    event.preventDefault();
+
+    var invoiceNumber = $('input[name=balanceInvoiceNumber]').val();
+    var balance = parseFloat($('input[name=balanceAmount]').val());
+
+    $.ajax({
+      url: 'save_balance.php',
+      type: 'POST',
+      data: { invoiceNumber: invoiceNumber, balance: balance },
+      success: function(response) {
+        console.log(response);
+        Swal.fire(response).then(function() {
+          location.reload();
+        });
+      },
+      error: function(xhr, status, error) {
+        console.error(error);
+        Swal.fire("Failed to save balance");
+      }
+    });
+  });
 });
         // Function to open the form overlay
         function openForm() {
@@ -369,6 +411,18 @@ try {
         document.getElementById('bag').value = '';
         document.getElementById('vehicleNumber').value = '';
         document.getElementById('vehicleFreight').value = '';
+        }
+
+        // Function to open the balance form overlay with pre-filled balance
+        function editBalance(bill) {
+            document.getElementById("balanceOverlayForm").style.display = "block";
+            $('input[name=balanceInvoiceNumber]').val(bill.invoice_number);
+            $('input[name=balanceAmount]').val(bill.balance !== null && bill.balance !== undefined ? bill.balance : '0.00');
+        }
+
+        // Function to close the balance form overlay
+        function closeBalanceForm() {
+            document.getElementById("balanceOverlayForm").style.display = "none";
         }
     </script>
 </html>
