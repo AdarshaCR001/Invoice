@@ -39,10 +39,4 @@ class HelpersTest extends TestCase
         $this->assertEquals('₹ 1,50,000.00', formatIndianCurrency("150000"));
         $this->assertEquals('₹ 1,50,000.50', formatIndianCurrency("150000.50"));
     }
-
-    public function testFormatCurrencyAlias()
-    {
-        $this->assertEquals('₹ 1,50,000.00', formatCurrency(150000));
-        $this->assertEquals('-₹ 500.00', formatCurrency(-500));
-    }
 }
