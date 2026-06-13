@@ -43,7 +43,7 @@ class AWSUploader {
             ]);
 
             return $fileKey;
-        } catch (S3Exception $e) {
+        } catch (AwsException $e) {
             // Error occurred while uploading the file to S3
             echo 'Error: ' . $e->getMessage();
         }
@@ -70,7 +70,7 @@ class AWSUploader {
             file_put_contents($fileName, $fileContent);
 
             return $fileName;
-        } catch (S3Exception $e) {
+        } catch (AwsException $e) {
             // Error occurred while retrieving the file from S3
             echo 'Error: ' . $e->getMessage();
         }
