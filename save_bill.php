@@ -8,16 +8,11 @@ require_once('aws_s3.php');
 $billData = $_POST['data'];
 
 // Database connection
-$host = $_ENV['HOST'];
-$db_name = $_ENV['DB_NAME'];
-$db_user = $_ENV['DB_USER'];
-$db_password = $_ENV['DB_PASSWORD'];
 $s3_base_url = $_ENV['S3_BASE_URL'];
 
 try {
     // Create a new PDO instance
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = getDbConnection();
 
     $billData['balance'] = isset($billData['balance']) ? floatval($billData['balance']) : 0.00;
 

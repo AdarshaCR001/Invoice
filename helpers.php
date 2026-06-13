@@ -17,4 +17,15 @@ function formatIndianCurrency($val) {
     return $is_negative ? '-' . $formatted : $formatted;
 }
 
+// Database Connection Helper
+function getDbConnection() {
+    $host = $_ENV['HOST'];
+    $db_name = $_ENV['DB_NAME'];
+    $db_user = $_ENV['DB_USER'];
+    $db_password = $_ENV['DB_PASSWORD'];
+
+    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return $conn;
+}
 ?>

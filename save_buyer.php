@@ -11,15 +11,9 @@ if (!$buyerData) {
 }
 
 // Database connection
-$host = $_ENV['HOST'];
-$db_name = $_ENV['DB_NAME'];
-$db_user = $_ENV['DB_USER'];
-$db_password = $_ENV['DB_PASSWORD'];
-
 try {
     // Create a new PDO instance
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = getDbConnection();
 
     $buyer_id = isset($buyerData['id']) ? intval($buyerData['id']) : 0;
     $buyer_name = isset($buyerData['buyerName']) ? trim($buyerData['buyerName']) : '';
