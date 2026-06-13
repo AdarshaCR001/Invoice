@@ -9,14 +9,8 @@ if ($invoiceNumber <= 0) {
     exit;
 }
 
-$host = $_ENV['HOST'];
-$db_name = $_ENV['DB_NAME'];
-$db_user = $_ENV['DB_USER'];
-$db_password = $_ENV['DB_PASSWORD'];
-
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = getDbConnection();
 
     $stmt = $conn->prepare("UPDATE bills SET balance = :balance WHERE invoice_number = :invoiceNumber");
     $stmt->bindParam(':balance', $balance);
