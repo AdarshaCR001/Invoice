@@ -17,8 +17,4 @@ function formatIndianCurrency($val) {
     return $is_negative ? '-' . $formatted : $formatted;
 }
 
-// Alias helper for dashboard compatibility
-function formatCurrency($val) {
-    return formatIndianCurrency($val);
-}
 ?>
