@@ -620,21 +620,21 @@ try {
     <!-- Billing Card -->
     <div class="stat-card" style="background: var(--g-blue);">
         <div class="stat-label">Total Billing</div>
-        <div class="stat-value"><?php echo formatCurrency($total_billing); ?></div>
+        <div class="stat-value"><?php echo formatIndianCurrency($total_billing); ?></div>
         <div class="stat-subtext">Sales for the selected period</div>
     </div>
 
     <!-- Received Card -->
     <div class="stat-card" style="background: var(--g-green);">
         <div class="stat-label">Total Received</div>
-        <div class="stat-value"><?php echo formatCurrency($total_received); ?></div>
+        <div class="stat-value"><?php echo formatIndianCurrency($total_received); ?></div>
         <div class="stat-subtext">Received payments in period</div>
     </div>
 
     <!-- Outstanding Balance Card -->
     <div class="stat-card" style="background: var(--g-red);">
         <div class="stat-label">Total Balance</div>
-        <div class="stat-value"><?php echo formatCurrency($total_balance); ?></div>
+        <div class="stat-value"><?php echo formatIndianCurrency($total_balance); ?></div>
         <div class="stat-subtext">Outstanding balances in period</div>
     </div>
 
@@ -642,14 +642,14 @@ try {
     <div class="stat-card" style="background: var(--g-purple);">
         <div class="stat-label">Top Buyer</div>
         <div class="stat-value" style="font-size: 1.6rem; margin: 14px 0 6px 0; font-weight: 700;"><?php echo htmlspecialchars($top_buyer_name); ?></div>
-        <div class="stat-subtext">Total Spent: <?php echo formatCurrency($top_buyer_revenue); ?></div>
+        <div class="stat-subtext">Total Spent: <?php echo formatIndianCurrency($top_buyer_revenue); ?></div>
     </div>
 
     <!-- Highest Balance Card -->
     <div class="stat-card" style="background: var(--g-orange);">
         <div class="stat-label">Highest Balance Holder</div>
         <div class="stat-value" style="font-size: 1.6rem; margin: 14px 0 6px 0; font-weight: 700;"><?php echo htmlspecialchars($top_bal_name); ?></div>
-        <div class="stat-subtext">Remaining Balance: <?php echo formatCurrency($top_bal_amount); ?></div>
+        <div class="stat-subtext">Remaining Balance: <?php echo formatIndianCurrency($top_bal_amount); ?></div>
     </div>
 
     <!-- Other Stats Card -->
@@ -657,7 +657,7 @@ try {
         <div class="stat-label">Other Metrics</div>
         <div style="margin: 6px 0;">
             <div style="font-size: 12px; margin-bottom: 2px;">Invoices Generated: <strong><?php echo $total_invoices; ?></strong></div>
-            <div style="font-size: 12px; margin-bottom: 2px;">Avg Invoice: <strong><?php echo formatCurrency($total_invoices > 0 ? $total_billing / $total_invoices : 0); ?></strong></div>
+            <div style="font-size: 12px; margin-bottom: 2px;">Avg Invoice: <strong><?php echo formatIndianCurrency($total_invoices > 0 ? $total_billing / $total_invoices : 0); ?></strong></div>
             <div style="font-size: 12px;">Quantity Sold: <strong><?php echo number_format($total_qty, 2); ?> KG</strong></div>
         </div>
         <div class="stat-subtext">General business summary</div>
@@ -685,8 +685,8 @@ try {
                         <tr>
                             <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
                             <td><?php echo htmlspecialchars($row['buyer_name'] ?: '-'); ?></td>
-                            <td style="text-align: right; font-weight: 500;"><?php echo formatCurrency($row['total_spent']); ?></td>
-                            <td style="text-align: right; color: <?php echo $row['total_outstanding'] > 0 ? '#f87171' : 'inherit'; ?>;"><?php echo formatCurrency($row['total_outstanding']); ?></td>
+                            <td style="text-align: right; font-weight: 500;"><?php echo formatIndianCurrency($row['total_spent']); ?></td>
+                            <td style="text-align: right; color: <?php echo $row['total_outstanding'] > 0 ? '#f87171' : 'inherit'; ?>;"><?php echo formatIndianCurrency($row['total_outstanding']); ?></td>
                             <td style="text-align: center;">
                                 <span class="badge" style="background-color: var(--primary); font-size: 11px; padding: 2px 6px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
                             </td>
@@ -731,9 +731,9 @@ try {
                             <td style="font-size: 12px;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
                             <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
                             <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                            <td style="text-align: right; font-weight: 500;"><?php echo formatCurrency($row['quantity'] * $row['price'] + $row['vehicle_freight']); ?></td>
+                            <td style="text-align: right; font-weight: 500;"><?php echo formatIndianCurrency($row['quantity'] * $row['price'] + $row['vehicle_freight']); ?></td>
                             <td style="text-align: right; font-weight: 500; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">
-                                <?php echo formatCurrency($row['balance']); ?>
+                                <?php echo formatIndianCurrency($row['balance']); ?>
                             </td>
                         </tr>
                     <?php } ?>
