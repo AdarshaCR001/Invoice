@@ -6,11 +6,11 @@ use Dompdf\Dompdf;
 
 function fileCreate($preName, $html){
     //Load Signature
-    $imagePath = __DIR__ . '/template/Devraj_Sign.jpeg';
+    $imagePath = __DIR__ . '/template/Devraj_Sign.png';
     $imageData = @file_get_contents($imagePath);
     if ($imageData !== false) {
         $base64 = base64_encode($imageData);
-        $imageSrc = 'data:image/jpeg;base64,' . $base64;
+        $imageSrc = 'data:image/png;base64,' . $base64;
     } else {
         // Fallback: Empty 1x1 pixel to prevent the "Big X" box
         $imageSrc = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -40,7 +40,7 @@ function fileCreate($preName, $html){
 
 function getUpdatedPdf($bill) {
     // Get the HTML content from the file
-    $htmlContent = file_get_contents("template/billTemplate.html");
+    $htmlContent = file_get_contents(__DIR__ . "/template/billTemplate.html");
 
     $amount = 0;
     if (isset($bill['quantity']) && isset($bill['price'])) {
