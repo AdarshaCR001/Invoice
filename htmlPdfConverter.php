@@ -33,6 +33,9 @@ function fileCreate($preName, $html){
     // Output the PDF to the browser
     $randomCode = str_pad(mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
 
+    $preName = basename($preName);
+    $preName = str_replace(array('/', '\\'), '', $preName);
+
     $outputFilePath = $preName."".$randomCode.'.pdf';
     file_put_contents($outputFilePath, $dompdf->output());
     return $outputFilePath;
