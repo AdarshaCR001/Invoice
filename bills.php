@@ -663,14 +663,14 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
 <!-- Overlay form -->
 <div id="overlayForm" class="overlay">
     <div class="overlay-content">
-        <span class="close-btn" onclick="closeForm()">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close" onclick="closeForm()" style="background: none; border: none; padding: 0;">&times;</button>
         <h1 id="modalTitle">Add Bill</h1>
-        <form id="billForm">
+        <form id="billForm" novalidate>
 
         <input type="hidden" name="invoiceNumber" id="invoiceNumber">
 
             <div class="form-group">
-                <label for="buyerIdSelect">Select Buyer:</label>
+                <label for="buyerIdSelect">Select Buyer: <span style="color: #ef4444;">*</span></label>
                 <select name="buyerIdSelect" id="buyerIdSelect" class="form-control" required>
                     <option value="">-- Select a Buyer --</option>
                     <?php foreach ($buyers as $b) { ?>
@@ -682,6 +682,7 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                         </option>
                     <?php } ?>
                 </select>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please select a buyer.</div>
             </div>
 
             <div class="form-group">
@@ -690,38 +691,45 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             </div>
 
             <div class="form-group">
-                <label for="buyerCompany">Buyer Company:</label>
+                <label for="buyerCompany">Buyer Company: <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="buyerCompany" id="buyerCompany" class="form-control" required readonly>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Buyer company is required.</div>
             </div>
 
             <div class="form-group">
-                <label for="buyerAddress">Buyer Address:</label>
+                <label for="buyerAddress">Buyer Address: <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="buyerAddress" id="buyerAddress" class="form-control" required readonly>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Buyer address is required.</div>
             </div>
 
             <div class="form-group">
-                <label for="itemName">Item Name:</label>
+                <label for="itemName">Item Name: <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="itemName" id="itemName" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter an item name.</div>
             </div>
 
             <div class="form-group">
-                <label for="quantity">Quantity (KG):</label>
+                <label for="quantity">Quantity (KG): <span style="color: #ef4444;">*</span></label>
                 <input type="number" value=0 step="0.01" name="quantity" id="quantity" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid quantity.</div>
             </div>
 
             <div class="form-group">
-                <label for="bag">Bag:</label>
+                <label for="bag">Bag: <span style="color: #ef4444;">*</span></label>
                 <input type="number" value=0 step="0.01" name="bag" id="bag" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid bag amount.</div>
             </div>
 
             <div class="form-group">
-                <label for="price">Price (Per KG):</label>
+                <label for="price">Price (Per KG): <span style="color: #ef4444;">*</span></label>
                 <input type="number" value=0 step="0.01" name="price" id="price" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid price.</div>
             </div>
 
             <div class="form-group">
-                <label for="vehicleNumber">Vehicle Number:</label>
+                <label for="vehicleNumber">Vehicle Number: <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="vehicleNumber" id="vehicleNumber" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a vehicle number.</div>
             </div>
 
             <div class="form-group">
@@ -742,13 +750,14 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
 <!-- Overlay form for editing balance -->
 <div id="balanceOverlayForm" class="overlay">
     <div class="overlay-content">
-        <span class="close-btn" onclick="closeBalanceForm()">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close" onclick="closeBalanceForm()" style="background: none; border: none; padding: 0;">&times;</button>
         <h1>Edit Balance</h1>
-        <form id="balanceForm">
+        <form id="balanceForm" novalidate>
             <input type="hidden" name="balanceInvoiceNumber" id="balanceInvoiceNumber">
             <div class="form-group">
-                <label for="balanceAmount">Balance Amount:</label>
+                <label for="balanceAmount">Balance Amount: <span style="color: #ef4444;">*</span></label>
                 <input type="number" step="0.01" name="balanceAmount" id="balanceAmount" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid balance amount.</div>
             </div>
             <button type="submit" class="btn btn-primary">Save Balance</button>
         </form>
@@ -805,26 +814,36 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                 </tr>
             </thead>
             <tbody>
-        <?php foreach ($result as $row) { ?>
+                <?php if (count($result) > 0) { ?>
+            <?php foreach ($result as $row) { ?>
+                <tr>
+                    <td><?php echo $row['invoice_number']; ?></td>
+                    <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
+                    <td><?php echo $row['buyer_company']; ?></td>
+                    <td><?php echo $row['buyer_address']; ?></td>
+                    <td><?php echo $row['item_name']; ?></td>
+                    <td><?php echo $row['bag']; ?></td>
+                    <td><?php echo $row['quantity']; ?></td>
+                    <td><?php echo formatIndianCurrency($row['price']); ?></td>
+                    <td><?php echo formatIndianCurrency($row['price'] * $row['quantity']); ?></td>
+                    <td><?php echo $row['vehicle_number']; ?></td>
+                    <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
+                    <td>
+                        <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
+                        <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
+                    </td>
+                    <td class="actions-cell">
+                        <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
+                        <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                    </td>
+                </tr>
+            <?php } ?>
+        <?php } else { ?>
             <tr>
-                <td><?php echo $row['invoice_number']; ?></td>
-                <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
-                <td><?php echo $row['buyer_company']; ?></td>
-                <td><?php echo $row['buyer_address']; ?></td>
-                <td><?php echo $row['item_name']; ?></td>
-                <td><?php echo $row['bag']; ?></td>
-                <td><?php echo $row['quantity']; ?></td>
-                <td><?php echo formatIndianCurrency($row['price']); ?></td>
-                <td><?php echo formatIndianCurrency($row['price'] * $row['quantity']); ?></td>
-                <td><?php echo $row['vehicle_number']; ?></td>
-                <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
-                <td>
-                    <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
-                    <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
-                </td>
-                <td class="actions-cell">
-                    <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
-                    <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                <td colspan="13" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                    <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No bills found</div>
+                    <div style="font-size: 13px;">Try adjusting your filters or <a href="bills.php" style="color: var(--primary);">clear them</a> to see all records.</div>
                 </td>
             </tr>
         <?php } ?>
@@ -896,8 +915,37 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
         balanceManuallyEdited = true;
       });
 
+
+
+      // Custom Form Validation
+      $('#billForm input[required], #billForm select[required]').on('input change', function() {
+          if ($(this).val()) {
+              $(this).css('border-color', '');
+              $(this).siblings('.invalid-feedback').hide();
+          }
+      });
+
   $('#billForm').submit(function(event) {
     event.preventDefault(); // Prevent the default form submission
+
+    var isValid = true;
+    $(this).find('input[required], select[required]').each(function() {
+        if (!$(this).val()) {
+            isValid = false;
+            $(this).css('border-color', '#ef4444');
+            $(this).siblings('.invalid-feedback').show();
+        } else {
+            $(this).css('border-color', '');
+            $(this).siblings('.invalid-feedback').hide();
+        }
+    });
+
+    if (!isValid) return;
+
+    var $submitBtn = $(this).find('button[type="submit"]');
+    var originalText = $submitBtn.text();
+    $submitBtn.prop('disabled', true).text('Saving...');
+
 
     var invoiceNumber = $('input[name=invoiceNumber]').val(); // Check for invoice number (edit mode)
     console.log("InvoiceNumber: "+invoiceNumber);
@@ -925,6 +973,9 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
       type: 'POST',
       data: { data: billData },
       success: function(response) {
+        if (response.indexOf('Error:') === 0 || response.toLowerCase().includes('failed')) {
+          $submitBtn.prop('disabled', false).text(originalText);
+        }
         // Handle the response from the server
         console.log(response);
         Swal.fire(
@@ -933,7 +984,10 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
        location.reload();
    });
       },
+
       error: function(xhr, status, error) {
+        $submitBtn.prop('disabled', false).text(originalText);
+
         // Handle errors
         console.error(error);
         Swal.fire(
@@ -943,8 +997,36 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
     });
   });
 
+
+
+      $('#balanceForm input[required]').on('input', function() {
+          if ($(this).val()) {
+              $(this).css('border-color', '');
+              $(this).siblings('.invalid-feedback').hide();
+          }
+      });
+
   $('#balanceForm').submit(function(event) {
     event.preventDefault();
+
+    var isValid = true;
+    $(this).find('input[required]').each(function() {
+        if (!$(this).val()) {
+            isValid = false;
+            $(this).css('border-color', '#ef4444');
+            $(this).siblings('.invalid-feedback').show();
+        } else {
+            $(this).css('border-color', '');
+            $(this).siblings('.invalid-feedback').hide();
+        }
+    });
+
+    if (!isValid) return;
+
+    var $submitBtn = $(this).find('button[type="submit"]');
+    var originalText = $submitBtn.text();
+    $submitBtn.prop('disabled', true).text('Saving...');
+
 
     var invoiceNumber = $('input[name=balanceInvoiceNumber]').val();
     var balance = parseFloat($('input[name=balanceAmount]').val());
@@ -954,12 +1036,18 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
       type: 'POST',
       data: { invoiceNumber: invoiceNumber, balance: balance },
       success: function(response) {
+        if (response.indexOf('Error:') === 0 || response.toLowerCase().includes('failed')) {
+          $submitBtn.prop('disabled', false).text(originalText);
+        }
         console.log(response);
         Swal.fire(response).then(function() {
           location.reload();
         });
       },
+
       error: function(xhr, status, error) {
+        $submitBtn.prop('disabled', false).text(originalText);
+
         console.error(error);
         Swal.fire("Failed to save balance");
       }
