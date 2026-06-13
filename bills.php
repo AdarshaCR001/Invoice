@@ -226,6 +226,25 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
             background: rgba(0, 0, 0, 0.05) !important;
         }
 
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.1) !important;
+            color: #ef4444 !important;
+            border: 1px solid rgba(239, 68, 68, 0.3) !important;
+            font-weight: 600 !important;
+            padding: 10px 18px !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease !important;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            height: 42px;
+            box-sizing: border-box;
+        }
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+            transform: translateY(-2px);
+        }
+
         select.form-control option {
             background-color: var(--modal-bg) !important;
             color: var(--text-main) !important;
@@ -637,9 +656,10 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
         <!-- Center Title -->
         <h1 style="text-align: center; margin: 0; background: var(--heading-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Invoice Generator</h1>
         
-        <!-- Right Theme Button -->
-        <div style="flex: 1; display: flex; justify-content: flex-end;">
+        <!-- Right Theme Button & Logout Button -->
+        <div style="flex: 1; display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
             <button id="themeToggle" class="btn">🌙 Theme</button>
+            <a href="logout.php" class="btn btn-logout" style="text-decoration: none;">🚪 Logout</a>
         </div>
     </div>
     
