@@ -88,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <form method="POST">
-            <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+            <label for="password" class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter Password" required>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
     </div>
