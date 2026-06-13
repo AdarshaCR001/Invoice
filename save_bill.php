@@ -88,7 +88,10 @@ try {
 
     // Generate the PDF with the bill data
     $filePath = getUpdatedPdf($billData);
-    $file = fopen($filePath, "r") or die("Unable to open file!");
+    $file = fopen($filePath, "r");
+    if (!$file) {
+        throw new Exception("Unable to open file!");
+    }
 
     // Upload the PDF to AWS S3
     $awsUploader = new AWSUploader();
@@ -107,7 +110,7 @@ try {
     fclose($file);
     unlink($filePath);
 
-} catch (PDOException $e) {
+} catch (Exception $e) {
     // Return an error message
     echo 'Error: ' . $e->getMessage();
 }
