@@ -42,4 +42,4 @@ phpunit.xml
 # Ignore log files and crash reports (for Windows users)
 *.log
 *.log.*
-*.stackdump
+*.stackdump.phpunit.result.cache
