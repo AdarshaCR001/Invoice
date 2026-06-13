@@ -505,11 +505,11 @@ try {
 <!-- Merge Overlay form -->
 <div id="mergeOverlayForm" class="overlay">
     <div class="overlay-content">
-        <span class="close-btn" onclick="closeMergeForm()">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close" onclick="closeMergeForm()" style="background: none; border: none; padding: 0;">&times;</button>
         <h1>Merge Buyers</h1>
-        <form id="mergeBuyersForm">
+        <form id="mergeBuyersForm" novalidate>
             <div class="form-group">
-                <label for="sourceBuyerId">Source Buyers (Duplicates - WILL BE DELETED - Hold Cmd/Ctrl to select multiple):</label>
+                <label for="sourceBuyerId">Source Buyers (Duplicates - WILL BE DELETED - Hold Cmd/Ctrl to select multiple): <span style="color: #ef4444;">*</span></label>
                 <select name="sourceBuyerId[]" id="sourceBuyerId" class="form-control" required multiple style="height: 120px !important; padding: 6px !important;">
                     <?php foreach ($all_buyers as $b) { ?>
                         <option value="<?php echo htmlspecialchars($b['id']); ?>" data-company="<?php echo htmlspecialchars($b['buyer_company']); ?>">
@@ -517,10 +517,11 @@ try {
                         </option>
                     <?php } ?>
                 </select>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please select at least one source buyer.</div>
             </div>
 
             <div class="form-group">
-                <label for="targetBuyerId">Target Buyer (Primary - Will Keep Linked Bills):</label>
+                <label for="targetBuyerId">Target Buyer (Primary - Will Keep Linked Bills): <span style="color: #ef4444;">*</span></label>
                 <select name="targetBuyerId" id="targetBuyerId" class="form-control" required>
                     <option value="">-- Select Target Buyer --</option>
                     <?php foreach ($all_buyers as $b) { ?>
@@ -529,6 +530,7 @@ try {
                         </option>
                     <?php } ?>
                 </select>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please select a target buyer.</div>
             </div>
 
             <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;">Execute Merge</button>
@@ -539,14 +541,15 @@ try {
 <!-- Overlay form -->
 <div id="overlayForm" class="overlay">
     <div class="overlay-content">
-        <span class="close-btn" onclick="closeForm()">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close" onclick="closeForm()" style="background: none; border: none; padding: 0;">&times;</button>
         <h1 id="modalTitle">Add Buyer</h1>
-        <form id="buyerForm">
+        <form id="buyerForm" novalidate>
             <input type="hidden" name="buyerId" id="buyerId">
 
             <div class="form-group">
-                <label for="buyerCompany">Buyer Company (Unique ID):</label>
+                <label for="buyerCompany">Buyer Company (Unique ID): <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="buyerCompany" id="buyerCompany" class="form-control" required placeholder="e.g. Acme Corp">
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Buyer company is required.</div>
             </div>
 
             <div class="form-group">
@@ -555,8 +558,9 @@ try {
             </div>
 
             <div class="form-group">
-                <label for="buyerAddress">Buyer Address:</label>
+                <label for="buyerAddress">Buyer Address: <span style="color: #ef4444;">*</span></label>
                 <input type="text" name="buyerAddress" id="buyerAddress" class="form-control" required placeholder="e.g. 123 Main St, New York">
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Buyer address is required.</div>
             </div>
 
             <button type="submit" class="btn btn-primary">Save Buyer</button>
@@ -627,8 +631,36 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
+
+
+        $('#buyerForm input[required]').on('input', function() {
+            if ($(this).val()) {
+                $(this).css('border-color', '');
+                $(this).siblings('.invalid-feedback').hide();
+            }
+        });
+
         $('#buyerForm').submit(function(event) {
             event.preventDefault();
+
+            var isValid = true;
+            $(this).find('input[required]').each(function() {
+                if (!$(this).val()) {
+                    isValid = false;
+                    $(this).css('border-color', '#ef4444');
+                    $(this).siblings('.invalid-feedback').show();
+                } else {
+                    $(this).css('border-color', '');
+                    $(this).siblings('.invalid-feedback').hide();
+                }
+            });
+
+            if (!isValid) return;
+
+            var $submitBtn = $(this).find('button[type="submit"]');
+            var originalText = $submitBtn.text();
+            $submitBtn.prop('disabled', true).text('Saving...');
+
 
             var buyerData = {
                 id: $('#buyerId').val(),
@@ -644,6 +676,7 @@ try {
                 success: function(response) {
                     console.log(response);
                     if (response.indexOf('Error:') === 0) {
+                        $submitBtn.prop('disabled', false).text(originalText);
                         Swal.fire({
                             icon: 'error',
                             title: 'Failed',
@@ -659,7 +692,9 @@ try {
                         });
                     }
                 },
+
                 error: function(xhr, status, error) {
+                    $submitBtn.prop('disabled', false).text(originalText);
                     console.error(error);
                     Swal.fire({
                         icon: 'error',
@@ -668,6 +703,7 @@ try {
                     });
                 }
             });
+
         });
 
         // Theme toggle handler
@@ -692,8 +728,33 @@ try {
             $('#themeToggle').text('🌙 Theme');
         }
 
+
+
+        $('#mergeBuyersForm select[required]').on('change', function() {
+            if ($(this).val() && $(this).val().length > 0) {
+                $(this).css('border-color', '');
+                $(this).siblings('.invalid-feedback').hide();
+            }
+        });
+
         $('#mergeBuyersForm').submit(function(event) {
             event.preventDefault();
+
+            var isValid = true;
+            $(this).find('select[required]').each(function() {
+                if (!$(this).val() || $(this).val().length === 0) {
+                    isValid = false;
+                    $(this).css('border-color', '#ef4444');
+                    $(this).siblings('.invalid-feedback').show();
+                } else {
+                    $(this).css('border-color', '');
+                    $(this).siblings('.invalid-feedback').hide();
+                }
+            });
+
+            if (!isValid) return;
+
+
 
             var sourceIds = $('#sourceBuyerId').val() || [];
             var targetId = $('#targetBuyerId').val();
@@ -742,6 +803,9 @@ try {
                 confirmButtonText: 'Yes, merge them!'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    var $submitBtn = $('#mergeBuyersForm button[type="submit"]');
+                    var originalText = $submitBtn.text();
+                    $submitBtn.prop('disabled', true).text('Merging...');
                     $.ajax({
                         url: 'merge_buyers.php',
                         type: 'POST',
@@ -749,6 +813,7 @@ try {
                         success: function(response) {
                             console.log(response);
                             if (response.indexOf('Error:') === 0) {
+                                $submitBtn.prop('disabled', false).text(originalText);
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Failed',
@@ -764,7 +829,10 @@ try {
                                 });
                             }
                         },
-                        error: function(xhr, status, error) {
+
+                error: function(xhr, status, error) {
+                    $submitBtn.prop('disabled', false).text(originalText);
+
                             console.error(error);
                             Swal.fire({
                                 icon: 'error',
@@ -773,8 +841,12 @@ try {
                             });
                         }
                     });
+
+                } else {
+                    // Do nothing, alert is dismissed
                 }
             });
+
         });
     });
 

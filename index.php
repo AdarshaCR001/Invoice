@@ -680,7 +680,7 @@ try {
                     </tr>
                 </thead>
                 <tbody>
-                <?php if (count($top_buyers_list) > 0) { ?>
+                                <?php if (count($top_buyers_list) > 0) { ?>
                     <?php foreach ($top_buyers_list as $row) { ?>
                         <tr>
                             <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
@@ -694,7 +694,11 @@ try {
                     <?php } ?>
                 <?php } else { ?>
                     <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">No buyer records found for this period.</td>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">👥</div>
+                            <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No buyers found</div>
+                            <div style="font-size: 13px;">Try adjusting your filters or <a href="index.php" style="color: var(--primary);">clear them</a> to see all records.</div>
+                        </td>
                     </tr>
                 <?php } ?>
                 </tbody>
@@ -718,7 +722,7 @@ try {
                     </tr>
                 </thead>
                 <tbody>
-                <?php if (count($recent_bills_list) > 0) { ?>
+                                <?php if (count($recent_bills_list) > 0) { ?>
                     <?php foreach ($recent_bills_list as $row) { ?>
                         <tr>
                             <td style="font-family: 'Courier New', Courier, monospace; font-weight: 700; color: #818cf8; text-align: center;">
@@ -735,7 +739,11 @@ try {
                     <?php } ?>
                 <?php } else { ?>
                     <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No invoices found for this period.</td>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                            <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No invoices found</div>
+                            <div style="font-size: 13px;">Try adjusting your filters or <a href="index.php" style="color: var(--primary);">clear them</a> to see all records.</div>
+                        </td>
                     </tr>
                 <?php } ?>
                 </tbody>
