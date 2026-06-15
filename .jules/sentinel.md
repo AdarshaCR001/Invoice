@@ -1,0 +1,4 @@
+## 2024-05-24 - Missing Output Encoding (Stored XSS) in View
+**Vulnerability:** Found multiple instances of Stored Cross-Site Scripting (XSS) in `bills.php` where data from the database (`buyer_company`, `buyer_address`, `item_name`, `vehicle_number`, `url`) was directly echoed into the HTML structure without any sanitization or encoding.
+**Learning:** Output encoding must be applied consistently across all application views. While `index.php` properly used `htmlspecialchars()`, `bills.php` did not, demonstrating how inconsistencies between view files can lead to exploitable security gaps when rendering user-controlled data.
+**Prevention:** Always wrap variables outputted to HTML using `htmlspecialchars()` (or equivalent template engine escaping if one is adopted) to securely encode special characters, preventing the browser from interpreting user data as executable code.
