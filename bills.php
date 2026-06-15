@@ -844,11 +844,11 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                     <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
                     <td>
                         <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
-                        <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
+                        <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" aria-label="Edit balance for invoice <?php echo htmlspecialchars($row['invoice_number']); ?>" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
                     </td>
                     <td class="actions-cell">
-                        <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
-                        <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                        <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download aria-label="Download invoice <?php echo htmlspecialchars($row['invoice_number']); ?>">Download</a>
+                        <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)" aria-label="Edit invoice <?php echo htmlspecialchars($row['invoice_number']); ?>">Edit</button>
                     </td>
                 </tr>
             <?php } ?>

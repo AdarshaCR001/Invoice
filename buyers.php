@@ -606,7 +606,7 @@ try {
                     <span class="badge" style="background-color: var(--primary); font-size: 12px; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
                 </td>
                 <td class="actions-cell">
-                    <button class="btn btn-warning" onclick="editBuyer(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                    <button class="btn btn-warning" onclick="editBuyer(<?php echo htmlspecialchars(json_encode($row)); ?>)" aria-label="Edit buyer <?php echo htmlspecialchars($row['buyer_company']); ?>">Edit</button>
                 </td>
             </tr>
         <?php } ?>
