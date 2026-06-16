@@ -85,10 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-card">
         <h2 style="margin-top: 0; margin-bottom: 30px;">Login</h2>
         <?php if ($error): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error-message" id="login-error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
-        <form method="POST">
-            <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+        <form method="POST" class="text-left">
+            <label for="password" style="display: block; margin-bottom: 8px; font-weight: 500;">Password <span aria-hidden="true" class="text-danger">*</span></label>
+            <input type="password" name="password" id="password" class="form-control" placeholder="Enter Password" required <?php echo $error ? 'aria-invalid="true" aria-describedby="login-error"' : ''; ?>>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
     </div>
