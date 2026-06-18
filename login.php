@@ -79,16 +79,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 15px;
             font-size: 14px;
         }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body>
     <div class="login-card">
         <h2 style="margin-top: 0; margin-bottom: 30px;">Login</h2>
         <?php if ($error): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error-message" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
-        <form method="POST">
-            <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+        <form method="POST" onsubmit="var btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Logging in...';">
+            <label for="password" class="sr-only">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter Password" autocomplete="current-password" required autofocus>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
     </div>
