@@ -1,3 +1,7 @@
 ## 2026-06-13 - [Custom Validation, Loading States, and Modal Accessibility]
 **Learning:** Found that custom validation using jQuery is needed to prevent default browser validation UI from showing up. Also learned that when using SweetAlert for confirmations, moving the button state change into the `.then(result => { if (result.isConfirmed) { ... } })` block is safer than changing it beforehand, otherwise you need to handle the state reset in the `else` block if the user cancels.
 **Action:** When adding validation or loading states to jQuery-based forms, always set `novalidate` on the form tag to suppress the browser UI, and carefully scope the loading state updates to the confirmed path of any prompt dialogs.
+
+## 2026-06-21 - [Lightweight vanilla JS state management and accessibility on login forms]
+**Learning:** For standalone pages like `login.php` that do not load large frameworks like jQuery, inline `onsubmit` handlers are an effective and extremely lightweight way to provide immediate UI feedback (like changing a button's text to "Logging in..." and disabling it to prevent double submission). Additionally, missing visible labels on critical inputs like passwords should always be mitigated with `aria-label` attributes for screen readers, and `autofocus` removes an unnecessary interaction step for the user.
+**Action:** When working on isolated, non-framework pages, leverage native HTML attributes (like `aria-label` and `autofocus`) and minimal inline vanilla JS (`onsubmit`) to enhance micro-UX without introducing external dependencies.
