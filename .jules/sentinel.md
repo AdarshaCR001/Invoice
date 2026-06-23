@@ -1,0 +1,4 @@
+## 2026-06-23 - [Stored XSS in Bills Table]
+**Vulnerability:** User-supplied fields (invoice_number, buyer_company, buyer_address, item_name, bag, quantity, vehicle_number) were echoed directly into the HTML table in `bills.php` without proper sanitization, leading to a Stored XSS vulnerability.
+**Learning:** Output encoding was inconsistent across the application. While `buyers.php` and `index.php` properly used `htmlspecialchars()`, `bills.php` did not, showing that copy-pasted or independently developed modules may lack uniform security practices.
+**Prevention:** Ensure all user-supplied data is consistently encoded with `htmlspecialchars()` before rendering in HTML context. Implement automated template linting or switch to a templating engine (like Twig or Blade) that automatically escapes variables by default.
