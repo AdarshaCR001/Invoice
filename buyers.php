@@ -596,17 +596,27 @@ try {
             </tr>
         </thead>
         <tbody>
-        <?php foreach ($result as $row) { ?>
+        <?php if (count($result) > 0) { ?>
+            <?php foreach ($result as $row) { ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($row['id']); ?></td>
+                    <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_name'] ?: '-'); ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_address']); ?></td>
+                    <td style="text-align: center;">
+                        <span class="badge" style="background-color: var(--primary); font-size: 12px; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
+                    </td>
+                    <td class="actions-cell">
+                        <button class="btn btn-warning" onclick="editBuyer(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                    </td>
+                </tr>
+            <?php } ?>
+        <?php } else { ?>
             <tr>
-                <td><?php echo htmlspecialchars($row['id']); ?></td>
-                <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
-                <td><?php echo htmlspecialchars($row['buyer_name'] ?: '-'); ?></td>
-                <td><?php echo htmlspecialchars($row['buyer_address']); ?></td>
-                <td style="text-align: center;">
-                    <span class="badge" style="background-color: var(--primary); font-size: 12px; font-weight: 600; padding: 4px 10px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
-                </td>
-                <td class="actions-cell">
-                    <button class="btn btn-warning" onclick="editBuyer(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">👥</div>
+                    <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No buyers found</div>
+                    <div style="font-size: 13px;">Click "Add Buyer" above to create your first buyer.</div>
                 </td>
             </tr>
         <?php } ?>
