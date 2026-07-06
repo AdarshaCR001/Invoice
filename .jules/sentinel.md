@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing XSS protection on dynamic PHP rendering
+**Vulnerability:** Direct output of database records (`$row['buyer_company']`, `$row['buyer_address']`, `$row['item_name']`, etc.) into HTML views without escaping, allowing persistent XSS if the database contains malicious input.
+**Learning:** In a codebase using traditional PHP templates, even with PDO prepared statements preventing SQL injection on insertion, all raw string data must be explicitly escaped when rendering. The custom `formatIndianCurrency` handles escaping internally, leading to a false sense of security for neighboring unescaped variables.
+**Prevention:** Always wrap variables outputted to the DOM with `htmlspecialchars()` unless they have been explicitly formatted by a safe function. Create a centralized helper for output escaping to ensure consistency.

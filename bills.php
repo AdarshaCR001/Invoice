@@ -831,16 +831,16 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                 <?php if (count($result) > 0) { ?>
             <?php foreach ($result as $row) { ?>
                 <tr>
-                    <td><?php echo $row['invoice_number']; ?></td>
+                    <td><?php echo htmlspecialchars($row['invoice_number']); ?></td>
                     <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
-                    <td><?php echo $row['buyer_company']; ?></td>
-                    <td><?php echo $row['buyer_address']; ?></td>
-                    <td><?php echo $row['item_name']; ?></td>
-                    <td><?php echo $row['bag']; ?></td>
-                    <td><?php echo $row['quantity']; ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_address']); ?></td>
+                    <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['bag']); ?></td>
+                    <td><?php echo htmlspecialchars($row['quantity']); ?></td>
                     <td><?php echo formatIndianCurrency($row['price']); ?></td>
                     <td><?php echo formatIndianCurrency($row['price'] * $row['quantity']); ?></td>
-                    <td><?php echo $row['vehicle_number']; ?></td>
+                    <td><?php echo htmlspecialchars($row['vehicle_number']); ?></td>
                     <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
                     <td>
                         <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
