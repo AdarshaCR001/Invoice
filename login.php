@@ -87,8 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($error): ?>
             <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
-        <form method="POST">
-            <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+        <form method="POST" onsubmit="var b=this.querySelector('button[type=submit]');b.disabled=true;b.textContent='Logging in...';">
+            <label for="password" class="sr-only">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Enter Password" required autofocus>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
     </div>
