@@ -75,16 +75,16 @@ try {
         'Bag',
         'Quantity (KG)',
         'Price (per KG)',
-        'Amount',
         'Vehicle Number',
         'Vehicle Freight',
+        'Total Amount',
         'Payment Received',
         'Balance'
-    ]);
+    ], ",", '"', "\\");
 
     foreach ($bills as $row) {
         $invoiceDate = date('Y-m-d', strtotime($row['created_on']));
-        $amount = $row['price'] * $row['quantity'];
+        $totalAmount = ($row['price'] * $row['quantity']) + $row['vehicle_freight'];
         $balance = $row['balance'] !== null ? $row['balance'] : 0.00;
 
         fputcsv($output, [
@@ -96,12 +96,12 @@ try {
             $row['bag'],
             $row['quantity'],
             formatIndianCurrency($row['price']),
-            formatIndianCurrency($amount),
             $row['vehicle_number'],
             formatIndianCurrency($row['vehicle_freight']),
+            formatIndianCurrency($totalAmount),
             formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00),
             formatIndianCurrency($balance)
-        ]);
+        ], ",", '"', "\\");
     }
 
     fclose($output);
