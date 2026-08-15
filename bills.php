@@ -904,9 +904,9 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
                     <th>Bag</th>
                     <th>Quantity (KG)</th>
                     <th>Price (per KG)</th>
-                    <th>Amount</th>
                     <th>Vehicle Number</th>
                     <th>Vehicle Freight</th>
+                    <th>Total Amount</th>
                     <th>Payment Status</th>
                     <th class="actions-header">Actions</th>
                 </tr>
@@ -923,9 +923,9 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
                     <td><?php echo htmlspecialchars($row['bag']); ?></td>
                     <td><?php echo htmlspecialchars($row['quantity']); ?></td>
                     <td><?php echo htmlspecialchars(formatIndianCurrency($row['price'])); ?></td>
-                    <td><?php echo htmlspecialchars(formatIndianCurrency($row['price'] * $row['quantity'])); ?></td>
                     <td><?php echo htmlspecialchars($row['vehicle_number']); ?></td>
                     <td><?php echo htmlspecialchars(formatIndianCurrency($row['vehicle_freight'])); ?></td>
+                    <td><?php echo htmlspecialchars(formatIndianCurrency(($row['price'] * $row['quantity']) + $row['vehicle_freight'])); ?></td>
                     <td>
                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Paid: <?php echo htmlspecialchars(formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00)); ?></div>
                         <div style="font-weight: 600; margin-bottom: 6px; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">Bal: <?php echo htmlspecialchars(formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00)); ?></div>
