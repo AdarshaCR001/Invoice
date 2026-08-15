@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `bills` (
   `bag` DECIMAL(10,2) NOT NULL,
   `vehicle_number` VARCHAR(255) NOT NULL,
   `vehicle_freight` DECIMAL(10,2) DEFAULT '0.00',
-  `balance` DECIMAL(10,2) DEFAULT '0.00',
+  `payment_received` DECIMAL(10,2) DEFAULT '0.00',
   `created_on` DATETIME NOT NULL,
   `updated_on` DATETIME NOT NULL,
   `url` VARCHAR(500) DEFAULT NULL,

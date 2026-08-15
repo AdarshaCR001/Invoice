@@ -2,7 +2,7 @@
 require_once('environment.php');
 
 $invoiceNumber = isset($_POST['invoiceNumber']) ? intval($_POST['invoiceNumber']) : 0;
-$balance = isset($_POST['balance']) ? floatval($_POST['balance']) : 0.0;
+$paymentReceived = isset($_POST['payment_received']) ? floatval($_POST['payment_received']) : 0.0;
 
 if ($invoiceNumber <= 0) {
     echo 'Error: Invalid Invoice Number';
@@ -12,12 +12,12 @@ if ($invoiceNumber <= 0) {
 try {
     $conn = getDbConnection();
 
-    $stmt = $conn->prepare("UPDATE bills SET balance = :balance WHERE invoice_number = :invoiceNumber");
-    $stmt->bindParam(':balance', $balance);
+    $stmt = $conn->prepare("UPDATE bills SET payment_received = :paymentReceived WHERE invoice_number = :invoiceNumber");
+    $stmt->bindParam(':paymentReceived', $paymentReceived);
     $stmt->bindParam(':invoiceNumber', $invoiceNumber);
     $stmt->execute();
 
-    echo 'Balance updated successfully!';
+    echo 'Payment updated successfully!';
 } catch (PDOException $e) {
     echo 'Error: ' . $e->getMessage();
 }

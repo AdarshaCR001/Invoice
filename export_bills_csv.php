@@ -23,9 +23,9 @@ if ($buyer_filter > 0) {
 }
 
 if ($balance_filter === 'remaining') {
-    $where_clauses[] = "b.balance > 0";
+    $where_clauses[] = "((b.quantity * b.price) + b.vehicle_freight - b.payment_received) > 0";
 } elseif ($balance_filter === 'none') {
-    $where_clauses[] = "b.balance = 0";
+    $where_clauses[] = "((b.quantity * b.price) + b.vehicle_freight - b.payment_received) = 0";
 }
 
 if ($selected_year !== 'all') {
@@ -44,7 +44,8 @@ if (count($where_clauses) > 0) {
 }
 
 try {
-    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address
+    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address,
+                     ((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS balance
               FROM bills b
               JOIN buyers buy ON b.buyer_id = buy.id
               $where_sql
@@ -77,6 +78,7 @@ try {
         'Amount',
         'Vehicle Number',
         'Vehicle Freight',
+        'Payment Received',
         'Balance'
     ]);
 
@@ -97,6 +99,7 @@ try {
             formatIndianCurrency($amount),
             $row['vehicle_number'],
             formatIndianCurrency($row['vehicle_freight']),
+            formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00),
             formatIndianCurrency($balance)
         ]);
     }

@@ -28,9 +28,9 @@ if ($buyer_filter > 0) {
 }
 
 if ($balance_filter === 'remaining') {
-    $where_clauses[] = "b.balance > 0";
+    $where_clauses[] = "((b.quantity * b.price) + b.vehicle_freight - b.payment_received) > 0";
 } elseif ($balance_filter === 'none') {
-    $where_clauses[] = "b.balance = 0";
+    $where_clauses[] = "((b.quantity * b.price) + b.vehicle_freight - b.payment_received) = 0";
 }
 
 if ($selected_year !== 'all') {
@@ -60,7 +60,8 @@ try {
     $available_years = $stmt_years->fetchAll(PDO::FETCH_COLUMN);
 
     // Retrieve data from the database with active filters
-    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address 
+    $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address,
+                     ((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS balance
               FROM bills b 
               JOIN buyers buy ON b.buyer_id = buy.id 
               $where_sql 
@@ -792,8 +793,21 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
             </div>
 
             <div class="form-group">
-                <label for="balance">Balance Amount:</label>
-                <input type="number" value=0 step="0.01" name="balance" id="balance" class="form-control">
+                <label for="payment_received">Payment Received: <span style="color: #ef4444;">*</span></label>
+                <input type="number" value="0.00" step="0.01" name="payment_received" id="payment_received" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid payment received.</div>
+            </div>
+
+            <!-- Dynamic Balance Calculation Preview -->
+            <div style="margin-top: 15px; margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 14px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Total Invoice Amount:</span>
+                    <span id="calculatedTotalAmount" style="font-weight: 600;">₹ 0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Calculated Balance:</span>
+                    <span id="calculatedBalanceAmount" style="font-weight: 600; color: var(--primary);">₹ 0.00</span>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary">Save</button>
@@ -801,19 +815,19 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
     </div>
 </div>
 
-<!-- Overlay form for editing balance -->
+<!-- Overlay form for editing payment received -->
 <div id="balanceOverlayForm" class="overlay">
     <div class="overlay-content">
         <button type="button" class="close-btn" aria-label="Close" onclick="closeBalanceForm()" style="background: none; border: none; padding: 0;">&times;</button>
-        <h1>Edit Balance</h1>
+        <h1>Edit Payment Received</h1>
         <form id="balanceForm" novalidate>
             <input type="hidden" name="balanceInvoiceNumber" id="balanceInvoiceNumber">
             <div class="form-group">
-                <label for="balanceAmount">Balance Amount: <span style="color: #ef4444;">*</span></label>
-                <input type="number" step="0.01" name="balanceAmount" id="balanceAmount" class="form-control" required>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid balance amount.</div>
+                <label for="paymentReceivedAmount">Payment Received: <span style="color: #ef4444;">*</span></label>
+                <input type="number" step="0.01" name="paymentReceivedAmount" id="paymentReceivedAmount" class="form-control" required>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid payment received amount.</div>
             </div>
-            <button type="submit" class="btn btn-primary">Save Balance</button>
+            <button type="submit" class="btn btn-primary">Save Payment</button>
         </form>
     </div>
 </div>
@@ -893,7 +907,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
                     <th>Amount</th>
                     <th>Vehicle Number</th>
                     <th>Vehicle Freight</th>
-                    <th>Balance</th>
+                    <th>Payment Status</th>
                     <th class="actions-header">Actions</th>
                 </tr>
             </thead>
@@ -913,8 +927,9 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
                     <td><?php echo htmlspecialchars($row['vehicle_number']); ?></td>
                     <td><?php echo htmlspecialchars(formatIndianCurrency($row['vehicle_freight'])); ?></td>
                     <td>
-                        <div style="font-weight: 600; margin-bottom: 6px;"><?php echo htmlspecialchars(formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00)); ?></div>
-                        <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Paid: <?php echo htmlspecialchars(formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00)); ?></div>
+                        <div style="font-weight: 600; margin-bottom: 6px; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">Bal: <?php echo htmlspecialchars(formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00)); ?></div>
+                        <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Payment</button>
                     </td>
                     <td class="actions-cell">
                         <a class="file-download" href="<?php echo htmlspecialchars($row['url']); ?>" target="_blank" download>Download</a>
@@ -968,7 +983,35 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    var balanceManuallyEdited = false;
+    function formatIndianCurrencyJS(val) {
+      var isNegative = val < 0;
+      val = Math.abs(val);
+      var decimal = val.toFixed(2);
+      var parts = decimal.split('.');
+      var num = parts[0];
+      var dec = parts[1] || '00';
+      
+      var lastThree = num.substring(num.length - 3);
+      var rest = num.substring(0, num.length - 3);
+      if (rest !== '') {
+        rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + ",";
+      }
+      var formatted = '₹ ' + rest + lastThree + '.' + dec;
+      return isNegative ? '-' + formatted : formatted;
+    }
+
+    function updateLiveTotals() {
+      var qty = parseFloat($('#quantity').val()) || 0;
+      var price = parseFloat($('#price').val()) || 0;
+      var freight = parseFloat($('#vehicleFreight').val()) || 0;
+      var payment = parseFloat($('#payment_received').val()) || 0;
+      
+      var total = (qty * price) + freight;
+      var balance = total - payment;
+      
+      $('#calculatedTotalAmount').text(formatIndianCurrencyJS(total));
+      $('#calculatedBalanceAmount').text(formatIndianCurrencyJS(balance));
+    }
 
     $(document).ready(function() {
       // Handle buyer selection change
@@ -985,18 +1028,8 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
         }
       });
 
-      $('#quantity, #price, #vehicleFreight').on('input change', function() {
-        if (!balanceManuallyEdited) {
-          var qty = parseFloat($('#quantity').val()) || 0;
-          var price = parseFloat($('#price').val()) || 0;
-          var freight = parseFloat($('#vehicleFreight').val()) || 0;
-          var calculatedBalance = (qty * price) + freight;
-          $('#balance').val(calculatedBalance.toFixed(2));
-        }
-      });
-
-      $('#balance').on('input change', function() {
-        balanceManuallyEdited = true;
+      $('#quantity, #price, #vehicleFreight, #payment_received').on('input change', function() {
+        updateLiveTotals();
       });
 
 
@@ -1047,7 +1080,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
       bag: parseFloat($('input[name=bag]').val()),
       vehicleNumber: $('input[name=vehicleNumber]').val(),
       vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight,
-      balance: parseFloat($('input[name=balance]').val()) || 0.00
+      payment_received: parseFloat($('input[name=payment_received]').val()) || 0.00
       // Add more properties as needed
     };
     
@@ -1113,12 +1146,12 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
 
 
     var invoiceNumber = $('input[name=balanceInvoiceNumber]').val();
-    var balance = parseFloat($('input[name=balanceAmount]').val());
+    var paymentReceived = parseFloat($('input[name=paymentReceivedAmount]').val());
 
     $.ajax({
-      url: 'save_balance.php',
+      url: 'save_payment.php',
       type: 'POST',
-      data: { invoiceNumber: invoiceNumber, balance: balance },
+      data: { invoiceNumber: invoiceNumber, payment_received: paymentReceived },
       success: function(response) {
         if (response.indexOf('Error:') === 0 || response.toLowerCase().includes('failed')) {
           $submitBtn.prop('disabled', false).text(originalText);
@@ -1133,7 +1166,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
         $submitBtn.prop('disabled', false).text(originalText);
 
         console.error(error);
-        Swal.fire("Failed to save balance");
+        Swal.fire("Failed to save payment");
       }
     });
   });
@@ -1189,7 +1222,8 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
             $('input[name=bag]').val(bill.bag);
             $('input[name=vehicleNumber]').val(bill.vehicle_number);
             $('input[name=vehicleFreight]').val(bill.vehicle_freight);
-            $('input[name=balance]').val(bill.balance);
+            $('input[name=payment_received]').val(bill.payment_received);
+            updateLiveTotals();
         }
 
         // Function to clear the form inputs
@@ -1203,15 +1237,15 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
         document.getElementById('bag').value = '';
         document.getElementById('vehicleNumber').value = '';
         document.getElementById('vehicleFreight').value = '';
-        document.getElementById('balance').value = '';
-        balanceManuallyEdited = false;
+        document.getElementById('payment_received').value = '0.00';
+        updateLiveTotals();
         }
 
-        // Function to open the balance form overlay with pre-filled balance
+        // Function to open the balance form overlay with pre-filled payment received
         function editBalance(bill) {
             document.getElementById("balanceOverlayForm").style.display = "block";
             $('input[name=balanceInvoiceNumber]').val(bill.invoice_number);
-            $('input[name=balanceAmount]').val(bill.balance !== null && bill.balance !== undefined ? bill.balance : '0.00');
+            $('input[name=paymentReceivedAmount]').val(bill.payment_received !== null && bill.payment_received !== undefined ? bill.payment_received : '0.00');
         }
 
         // Function to close the balance form overlay

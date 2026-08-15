@@ -14,7 +14,7 @@ try {
     // Create a new PDO instance
     $conn = getDbConnection();
 
-    $billData['balance'] = isset($billData['balance']) ? floatval($billData['balance']) : 0.00;
+    $billData['payment_received'] = isset($billData['payment_received']) ? floatval($billData['payment_received']) : 0.00;
 
     // Extract selected buyerId from post data
     $buyer_id = isset($billData['buyerId']) ? intval($billData['buyerId']) : 0;
@@ -37,7 +37,7 @@ try {
                                     bag = :bag, 
                                     vehicle_number = :vehicleNumber, 
                                     vehicle_freight = :vehicleFreight, 
-                                    balance = :balance,
+                                    payment_received = :paymentReceived,
                                     updated_on = :updatedOn 
                                 WHERE invoice_number = :invoiceNumber");
 
@@ -47,8 +47,8 @@ try {
         $billData['createdOn'] = date('Y-m-d');
 
         // Prepare the SQL statement for inserting a new record
-        $stmt = $conn->prepare("INSERT INTO bills (buyer_id, item_name, quantity, price, bag, vehicle_number, vehicle_freight, balance, created_on, updated_on) 
-                               VALUES (:buyerId, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :balance, :createdOn, :updatedOn)");
+        $stmt = $conn->prepare("INSERT INTO bills (buyer_id, item_name, quantity, price, bag, vehicle_number, vehicle_freight, payment_received, created_on, updated_on) 
+                               VALUES (:buyerId, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :paymentReceived, :createdOn, :updatedOn)");
 
         echo 'Bill data inserted successfully!';
     }
@@ -61,7 +61,7 @@ try {
     $stmt->bindParam(':bag', $billData['bag']);
     $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
     $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
-    $stmt->bindParam(':balance', $billData['balance']);
+    $stmt->bindParam(':paymentReceived', $billData['payment_received']);
 
     if (!empty($billData['invoiceNumber'])) {
         $stmt->bindParam(':updatedOn', $billData['updatedOn']);

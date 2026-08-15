@@ -19,6 +19,7 @@ class CsvExportTest extends TestCase
             'price' => 45.50,
             'vehicle_number' => 'MH-12-AB-1234',
             'vehicle_freight' => 1500.00,
+            'payment_received' => 42000.00,
             'balance' => 5000.00
         ];
 
@@ -38,6 +39,7 @@ class CsvExportTest extends TestCase
             formatIndianCurrency($amount),
             $mockBillRow['vehicle_number'],
             formatIndianCurrency($mockBillRow['vehicle_freight']),
+            formatIndianCurrency($mockBillRow['payment_received'] !== null ? $mockBillRow['payment_received'] : 0.00),
             formatIndianCurrency($balance)
         ];
 
@@ -53,6 +55,7 @@ class CsvExportTest extends TestCase
             '₹ 45,500.00',
             'MH-12-AB-1234',
             '₹ 1,500.00',
+            '₹ 42,000.00',
             '₹ 5,000.00'
         ];
 

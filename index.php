@@ -36,7 +36,7 @@ try {
         SELECT 
             COUNT(b.invoice_number) AS total_invoices,
             SUM((b.quantity * b.price) + b.vehicle_freight) AS total_billing,
-            SUM(b.balance) AS total_balance,
+            SUM((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS total_balance,
             SUM(b.quantity) AS total_qty
         FROM bills b
         $where_sql
@@ -75,7 +75,7 @@ try {
 
     // 3. Highest Balance Holder
     $query_top_balance = "
-        SELECT buy.buyer_company, buy.buyer_name, SUM(b.balance) AS balance_sum
+        SELECT buy.buyer_company, buy.buyer_name, SUM((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS balance_sum
         FROM bills b
         JOIN buyers buy ON b.buyer_id = buy.id
         $where_sql
@@ -101,7 +101,7 @@ try {
     $query_buyers_list = "
         SELECT buy.buyer_company, buy.buyer_name, 
                SUM((b.quantity * b.price) + b.vehicle_freight) AS total_spent,
-               SUM(b.balance) AS total_outstanding,
+               SUM((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS total_outstanding,
                COUNT(b.invoice_number) AS invoices_count
         FROM bills b
         JOIN buyers buy ON b.buyer_id = buy.id
@@ -121,7 +121,7 @@ try {
     $query_balancers_list = "
         SELECT buy.buyer_company, buy.buyer_name,
                SUM((b.quantity * b.price) + b.vehicle_freight) AS total_spent,
-               SUM(b.balance) AS total_outstanding,
+               SUM((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS total_outstanding,
                COUNT(b.invoice_number) AS invoices_count
         FROM bills b
         JOIN buyers buy ON b.buyer_id = buy.id
@@ -139,7 +139,8 @@ try {
 
     // 6. Recent 5 bills in the period
     $query_recent_bills = "
-        SELECT b.*, buy.buyer_company, buy.buyer_name 
+        SELECT b.*, buy.buyer_company, buy.buyer_name,
+               ((b.quantity * b.price) + b.vehicle_freight - b.payment_received) AS balance
         FROM bills b
         JOIN buyers buy ON b.buyer_id = buy.id
         $where_sql
