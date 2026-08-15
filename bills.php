@@ -831,23 +831,23 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                 <?php if (count($result) > 0) { ?>
             <?php foreach ($result as $row) { ?>
                 <tr>
-                    <td><?php echo $row['invoice_number']; ?></td>
+                    <td><?php echo htmlspecialchars($row['invoice_number']); ?></td>
                     <td><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
-                    <td><?php echo $row['buyer_company']; ?></td>
-                    <td><?php echo $row['buyer_address']; ?></td>
-                    <td><?php echo $row['item_name']; ?></td>
-                    <td><?php echo $row['bag']; ?></td>
-                    <td><?php echo $row['quantity']; ?></td>
-                    <td><?php echo formatIndianCurrency($row['price']); ?></td>
-                    <td><?php echo formatIndianCurrency($row['price'] * $row['quantity']); ?></td>
-                    <td><?php echo $row['vehicle_number']; ?></td>
-                    <td><?php echo formatIndianCurrency($row['vehicle_freight']); ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                    <td><?php echo htmlspecialchars($row['buyer_address']); ?></td>
+                    <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['bag']); ?></td>
+                    <td><?php echo htmlspecialchars($row['quantity']); ?></td>
+                    <td><?php echo htmlspecialchars(formatIndianCurrency($row['price'])); ?></td>
+                    <td><?php echo htmlspecialchars(formatIndianCurrency($row['price'] * $row['quantity'])); ?></td>
+                    <td><?php echo htmlspecialchars($row['vehicle_number']); ?></td>
+                    <td><?php echo htmlspecialchars(formatIndianCurrency($row['vehicle_freight'])); ?></td>
                     <td>
-                        <div style="font-weight: 600; margin-bottom: 6px;"><?php echo formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00); ?></div>
+                        <div style="font-weight: 600; margin-bottom: 6px;"><?php echo htmlspecialchars(formatIndianCurrency($row['balance'] !== null ? $row['balance'] : 0.00)); ?></div>
                         <button class="btn btn-info" onclick="editBalance(<?php echo htmlspecialchars(json_encode($row)); ?>)" style="padding: 2px 8px !important; height: 22px !important; font-size: 10px !important; font-weight: 600 !important; border-radius: 4px !important; margin: 0 !important; line-height: 1 !important; display: inline-flex !important; align-items: center !important;">Edit Balance</button>
                     </td>
                     <td class="actions-cell">
-                        <a class="file-download" href="<?php echo $row['url']; ?>" target="_blank" download>Download</a>
+                        <a class="file-download" href="<?php echo htmlspecialchars($row['url']); ?>" target="_blank" download>Download</a>
                         <button class="btn btn-warning" onclick="editBill(<?php echo htmlspecialchars(json_encode($row)); ?>)">Edit</button>
                     </td>
                 </tr>

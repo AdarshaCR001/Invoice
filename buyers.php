@@ -11,7 +11,7 @@ try {
 
 // Pagination variables
 $records_per_page = 10;
-$page = isset($_GET['page']) ? $_GET['page'] : 1;
+$page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $start_from = ($page - 1) * $records_per_page;
 
 try {
