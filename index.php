@@ -117,6 +117,26 @@ try {
     $stmt_blist->execute();
     $top_buyers_list = $stmt_blist->fetchAll(PDO::FETCH_ASSOC);
 
+    // 5b. Top 5 Balancers list by outstanding balance in the period
+    $query_balancers_list = "
+        SELECT buy.buyer_company, buy.buyer_name,
+               SUM((b.quantity * b.price) + b.vehicle_freight) AS total_spent,
+               SUM(b.balance) AS total_outstanding,
+               COUNT(b.invoice_number) AS invoices_count
+        FROM bills b
+        JOIN buyers buy ON b.buyer_id = buy.id
+        $where_sql
+        GROUP BY b.buyer_id
+        ORDER BY total_outstanding DESC
+        LIMIT 5
+    ";
+    $stmt_bal_list = $conn->prepare($query_balancers_list);
+    foreach ($params as $key => $val) {
+        $stmt_bal_list->bindValue($key, $val);
+    }
+    $stmt_bal_list->execute();
+    $top_balancers_list = $stmt_bal_list->fetchAll(PDO::FETCH_ASSOC);
+
     // 6. Recent 5 bills in the period
     $query_recent_bills = "
         SELECT b.*, buy.buyer_company, buy.buyer_name 
@@ -720,42 +740,38 @@ try {
         </div>
     </div>
 
-    <!-- Top 5 Recent Bills list -->
+    <!-- Top 5 Balancers list -->
     <div>
-        <div class="section-title">Recent Invoices</div>
+        <div class="section-title">Top 5 Balancers</div>
         <div class="table-container">
             <table class="table" style="margin-bottom: 0;">
                 <thead>
                     <tr>
-                        <th style="text-align: center; width: 60px;">Inv #</th>
-                        <th>Date</th>
                         <th>Buyer Company</th>
-                        <th>Item</th>
-                        <th style="text-align: right;">Amount</th>
-                        <th style="text-align: right;">Balance</th>
+                        <th>Contact Name</th>
+                        <th style="text-align: right;">Total Spent</th>
+                        <th style="text-align: right;">Outstanding</th>
+                        <th style="text-align: center;">Bills</th>
                     </tr>
                 </thead>
                 <tbody>
-                                <?php if (count($recent_bills_list) > 0) { ?>
-                    <?php foreach ($recent_bills_list as $row) { ?>
+                                <?php if (count($top_balancers_list) > 0) { ?>
+                    <?php foreach ($top_balancers_list as $row) { ?>
                         <tr>
-                            <td style="font-family: 'Courier New', Courier, monospace; font-weight: 700; color: #818cf8; text-align: center;">
-                                <?php echo htmlspecialchars($row['invoice_number']); ?>
-                            </td>
-                            <td style="font-size: 12px;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
                             <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
-                            <td><?php echo htmlspecialchars($row['item_name']); ?></td>
-                            <td style="text-align: right; font-weight: 500;"><?php echo formatIndianCurrency($row['quantity'] * $row['price'] + $row['vehicle_freight']); ?></td>
-                            <td style="text-align: right; font-weight: 500; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">
-                                <?php echo formatIndianCurrency($row['balance']); ?>
+                            <td><?php echo htmlspecialchars($row['buyer_name'] ?: '-'); ?></td>
+                            <td style="text-align: right; font-weight: 500;"><?php echo formatIndianCurrency($row['total_spent']); ?></td>
+                            <td style="text-align: right; color: <?php echo $row['total_outstanding'] > 0 ? '#f87171' : 'inherit'; ?>; font-weight: 600;"><?php echo formatIndianCurrency($row['total_outstanding']); ?></td>
+                            <td style="text-align: center;">
+                                <span class="badge" style="background-color: var(--primary); font-size: 11px; padding: 2px 6px;"><?php echo htmlspecialchars($row['invoices_count']); ?></span>
                             </td>
                         </tr>
                     <?php } ?>
                 <?php } else { ?>
                     <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
-                            <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
-                            <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No invoices found</div>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">⚖️</div>
+                            <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No balancers found</div>
                             <div style="font-size: 13px;">Try adjusting your filters or <a href="index.php" style="color: var(--primary);">clear them</a> to see all records.</div>
                         </td>
                     </tr>
@@ -763,6 +779,51 @@ try {
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- Top 5 Recent Bills list -->
+<div style="margin-top: 24px;">
+    <div class="section-title">Recent Invoices</div>
+    <div class="table-container">
+        <table class="table" style="margin-bottom: 0;">
+            <thead>
+                <tr>
+                    <th style="text-align: center; width: 60px;">Inv #</th>
+                    <th>Date</th>
+                    <th>Buyer Company</th>
+                    <th>Item</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: right;">Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                            <?php if (count($recent_bills_list) > 0) { ?>
+                <?php foreach ($recent_bills_list as $row) { ?>
+                    <tr>
+                        <td style="font-family: 'Courier New', Courier, monospace; font-weight: 700; color: #818cf8; text-align: center;">
+                            <?php echo htmlspecialchars($row['invoice_number']); ?>
+                        </td>
+                        <td style="font-size: 12px;"><?php echo htmlspecialchars(date('Y-m-d', strtotime($row['created_on']))); ?></td>
+                        <td style="font-weight: 600;"><?php echo htmlspecialchars($row['buyer_company']); ?></td>
+                        <td><?php echo htmlspecialchars($row['item_name']); ?></td>
+                        <td style="text-align: right; font-weight: 500;"><?php echo formatIndianCurrency($row['quantity'] * $row['price'] + $row['vehicle_freight']); ?></td>
+                        <td style="text-align: right; font-weight: 500; color: <?php echo $row['balance'] > 0 ? '#f87171' : 'inherit'; ?>;">
+                            <?php echo formatIndianCurrency($row['balance']); ?>
+                        </td>
+                    </tr>
+                <?php } ?>
+            <?php } else { ?>
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📭</div>
+                        <div style="font-weight: 500; font-size: 16px; margin-bottom: 5px;">No invoices found</div>
+                        <div style="font-size: 13px;">Try adjusting your filters or <a href="index.php" style="color: var(--primary);">clear them</a> to see all records.</div>
+                    </td>
+                </tr>
+            <?php } ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
