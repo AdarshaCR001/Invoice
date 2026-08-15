@@ -16,6 +16,8 @@ $start_from = ($page - 1) * $records_per_page;
 
 $buyer_filter = isset($_GET['buyer_filter']) ? intval($_GET['buyer_filter']) : 0;
 $balance_filter = isset($_GET['balance_filter']) ? $_GET['balance_filter'] : 'all';
+$selected_month = isset($_GET['month']) ? $_GET['month'] : 'all';
+$selected_year = isset($_GET['year']) ? $_GET['year'] : 'all';
 
 $where_clauses = [];
 $params = [];
@@ -31,6 +33,16 @@ if ($balance_filter === 'remaining') {
     $where_clauses[] = "b.balance = 0";
 }
 
+if ($selected_year !== 'all') {
+    $where_clauses[] = "YEAR(b.created_on) = :year";
+    $params[':year'] = intval($selected_year);
+}
+
+if ($selected_month !== 'all') {
+    $where_clauses[] = "MONTH(b.created_on) = :month";
+    $params[':month'] = intval($selected_month);
+}
+
 $where_sql = "";
 if (count($where_clauses) > 0) {
     $where_sql = "WHERE " . implode(" AND ", $where_clauses);
@@ -41,6 +53,11 @@ try {
     $stmt_buyers = $conn->prepare("SELECT * FROM buyers ORDER BY buyer_company ASC");
     $stmt_buyers->execute();
     $buyers = $stmt_buyers->fetchAll(PDO::FETCH_ASSOC);
+
+    // Available Years in database for filtering
+    $stmt_years = $conn->prepare("SELECT DISTINCT YEAR(created_on) AS yr FROM bills WHERE created_on IS NOT NULL ORDER BY yr DESC");
+    $stmt_years->execute();
+    $available_years = $stmt_years->fetchAll(PDO::FETCH_COLUMN);
 
     // Retrieve data from the database with active filters
     $query = "SELECT b.*, buy.buyer_name, buy.buyer_company, buy.buyer_address 
@@ -74,7 +91,7 @@ try {
     echo "Query failed: " . $e->getMessage();
 }
 
-function getPaginationLink($p, $buyer_filter, $balance_filter) {
+function getPaginationLink($p, $buyer_filter, $balance_filter, $selected_month, $selected_year) {
     $params = ['page' => $p];
     if ($buyer_filter > 0) {
         $params['buyer_filter'] = $buyer_filter;
@@ -82,7 +99,30 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
     if ($balance_filter !== 'all') {
         $params['balance_filter'] = $balance_filter;
     }
+    if ($selected_month !== 'all') {
+        $params['month'] = $selected_month;
+    }
+    if ($selected_year !== 'all') {
+        $params['year'] = $selected_year;
+    }
     return '?' . http_build_query($params);
+}
+
+function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $selected_year) {
+    $params = [];
+    if ($buyer_filter > 0) {
+        $params['buyer_filter'] = $buyer_filter;
+    }
+    if ($balance_filter !== 'all') {
+        $params['balance_filter'] = $balance_filter;
+    }
+    if ($selected_month !== 'all') {
+        $params['month'] = $selected_month;
+    }
+    if ($selected_year !== 'all') {
+        $params['year'] = $selected_year;
+    }
+    return 'export_bills_csv.php' . (!empty($params) ? '?' . http_build_query($params) : '');
 }
 ?>
 
@@ -800,9 +840,39 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
                 <option value="none" <?php echo $balance_filter === 'none' ? 'selected' : ''; ?>>No Balance (= 0)</option>
             </select>
         </div>
+        <div class="filter-group">
+            <label for="month">Month:</label>
+            <select name="month" id="month" class="form-control">
+                <option value="all" <?php echo $selected_month === 'all' ? 'selected' : ''; ?>>All Months</option>
+                <?php
+                $months = [
+                    1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+                    5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+                    9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+                ];
+                foreach ($months as $num => $name) {
+                    $sel = ($selected_month !== 'all' && intval($selected_month) === $num) ? 'selected' : '';
+                    echo "<option value=\"$num\" $sel>$name</option>";
+                }
+                ?>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="year">Year:</label>
+            <select name="year" id="year" class="form-control">
+                <option value="all" <?php echo $selected_year === 'all' ? 'selected' : ''; ?>>All Years</option>
+                <?php
+                foreach ($available_years as $yr) {
+                    $sel = ($selected_year !== 'all' && intval($selected_year) === intval($yr)) ? 'selected' : '';
+                    echo "<option value=\"$yr\" $sel>$yr</option>";
+                }
+                ?>
+            </select>
+        </div>
         <div class="filter-actions">
             <button type="submit" class="btn btn-primary filter-btn">Apply Filters</button>
             <a href="bills.php" class="btn btn-default reset-btn">Reset</a>
+            <a href="<?php echo htmlspecialchars(getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $selected_year)); ?>" class="btn btn-success reset-btn" style="background: linear-gradient(135deg, var(--accent-green) 0%, #059669 100%) !important; color: white !important; border: none !important;">📥 Export CSV</a>
         </div>
     </form>
 </div>
@@ -874,13 +944,13 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
 
     // Display the first page link
     if ($start > 1) {
-        echo '<a href="' . getPaginationLink(1, $buyer_filter, $balance_filter) . '">1</a>';
+        echo '<a href="' . getPaginationLink(1, $buyer_filter, $balance_filter, $selected_month, $selected_year) . '">1</a>';
         echo '<span>&hellip;</span>';
     }
 
     // Display the page links within the range
     for ($i = $start; $i <= $end; $i++) {
-        echo '<a href="' . getPaginationLink($i, $buyer_filter, $balance_filter) . '"';
+        echo '<a href="' . getPaginationLink($i, $buyer_filter, $balance_filter, $selected_month, $selected_year) . '"';
         if ($i == $page) {
             echo ' class="active"';
         }
@@ -890,7 +960,7 @@ function getPaginationLink($p, $buyer_filter, $balance_filter) {
     // Display the last page link
     if ($end < $total_pages) {
         echo '<span>&hellip;</span>';
-        echo '<a href="' . getPaginationLink($total_pages, $buyer_filter, $balance_filter) . '">' . $total_pages . '</a>';
+        echo '<a href="' . getPaginationLink($total_pages, $buyer_filter, $balance_filter, $selected_month, $selected_year) . '">' . $total_pages . '</a>';
     }
     ?>
 </div>
