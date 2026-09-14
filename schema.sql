@@ -31,3 +31,19 @@ CREATE TABLE IF NOT EXISTS `bills` (
   KEY `fk_bills_buyer_id` (`buyer_id`),
   CONSTRAINT `fk_bills_buyer_id` FOREIGN KEY (`buyer_id`) REFERENCES `buyers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Create items table
+CREATE TABLE IF NOT EXISTS `items` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `item_name` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `item_name` (`item_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default items if not present
+INSERT IGNORE INTO `items` (`item_name`) VALUES 
+('RAGI HSN:10082031'),
+('Ragi Flour HSN:10082031');
+

@@ -48,7 +48,16 @@ if (count($where_clauses) > 0) {
     $where_sql = "WHERE " . implode(" AND ", $where_clauses);
 }
 
+$items = [];
 try {
+    // Retrieve items list for form dropdown selection
+    $stmt_items = $conn->prepare("SELECT * FROM items ORDER BY id ASC");
+    $stmt_items->execute();
+    $items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
+    if (!is_array($items)) {
+        $items = [];
+    }
+
     // Retrieve list of buyers for the form dropdown selection and filter dropdown
     $stmt_buyers = $conn->prepare("SELECT * FROM buyers ORDER BY buyer_company ASC");
     $stmt_buyers->execute();
@@ -709,6 +718,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
             <a href="index.php" class="tab-link">Dashboard</a>
             <a href="bills.php" class="tab-link active">Bills</a>
             <a href="buyers.php" class="tab-link">Buyers</a>
+            <a href="items.php" class="tab-link">Items</a>
         </div>
         
         <button onclick="openForm()" class="btn btn-primary">Add Bill</button>
@@ -759,8 +769,16 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
 
             <div class="form-group">
                 <label for="itemName">Item Name: <span style="color: #ef4444;">*</span></label>
-                <input type="text" name="itemName" id="itemName" class="form-control" required>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter an item name.</div>
+                <select name="itemName" id="itemName" class="form-control" required>
+                    <?php foreach ($items as $idx => $it) { 
+                        $is_default = ($idx === 0) ? 'selected' : '';
+                    ?>
+                        <option value="<?php echo htmlspecialchars($it['item_name']); ?>" <?php echo $is_default; ?>>
+                            <?php echo htmlspecialchars($it['item_name']); ?>
+                        </option>
+                    <?php } ?>
+                </select>
+                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please select an item name.</div>
             </div>
 
             <div class="form-group">
@@ -1074,7 +1092,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
       buyerName: $('input[name=buyerName]').val(),
       buyerCompany: $('input[name=buyerCompany]').val(),
       buyerAddress: $('input[name=buyerAddress]').val(),
-      itemName: $('input[name=itemName]').val(),
+      itemName: $('#itemName').val(),
       quantity: parseFloat($('input[name=quantity]').val()),
       price: parseFloat($('input[name=price]').val()),
       bag: parseFloat($('input[name=bag]').val()),
@@ -1216,7 +1234,12 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
             $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
             $('#buyerIdSelect').val(bill.buyer_id);
             $('#buyerIdSelect').trigger('change');
-            $('input[name=itemName]').val(bill.item_name);
+            if (bill.item_name) {
+                if ($('#itemName option[value="' + bill.item_name + '"]').length === 0) {
+                    $('#itemName').append(new Option(bill.item_name, bill.item_name));
+                }
+                $('#itemName').val(bill.item_name);
+            }
             $('input[name=quantity]').val(bill.quantity);
             $('input[name=price]').val(bill.price);
             $('input[name=bag]').val(bill.bag);
@@ -1231,7 +1254,7 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
         $('input[name=invoiceNumber]').val('');
         $('#buyerIdSelect').val('');
         $('#buyerIdSelect').trigger('change');
-        document.getElementById('itemName').value = '';
+        $('#itemName').prop('selectedIndex', 0);
         document.getElementById('quantity').value = '';
         document.getElementById('price').value = '';
         document.getElementById('bag').value = '';

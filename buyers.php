@@ -507,6 +507,7 @@ try {
             <a href="index.php" class="tab-link">Dashboard</a>
             <a href="bills.php" class="tab-link">Bills</a>
             <a href="buyers.php" class="tab-link active">Buyers</a>
+            <a href="items.php" class="tab-link">Items</a>
         </div>
         
         <div style="display: flex; gap: 12px; align-items: center;">

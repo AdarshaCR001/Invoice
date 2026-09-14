@@ -607,6 +607,7 @@ try {
             <a href="index.php" class="tab-link active">Dashboard</a>
             <a href="bills.php" class="tab-link">Bills</a>
             <a href="buyers.php" class="tab-link">Buyers</a>
+            <a href="items.php" class="tab-link">Items</a>
         </div>
     </div>
 </div>
