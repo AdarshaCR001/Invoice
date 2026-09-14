@@ -45,16 +45,50 @@ function getUpdatedPdf($bill) {
     // Get the HTML content from the file
     $htmlContent = file_get_contents(__DIR__ . "/template/billTemplate.html");
 
-    $amount = 0;
-    if (isset($bill['quantity']) && isset($bill['price'])) {
-        $amount = $bill['quantity'] * $bill['price'];
+    // Normalize items array
+    $itemsList = [];
+    if (isset($bill['items']) && is_array($bill['items']) && count($bill['items']) > 0) {
+        $itemsList = $bill['items'];
+    } else {
+        // Fallback for single item structure
+        $itemsList[] = [
+            'item_name' => isset($bill['itemName']) ? $bill['itemName'] : '',
+            'bag' => isset($bill['bag']) ? $bill['bag'] : 0,
+            'quantity' => isset($bill['quantity']) ? $bill['quantity'] : 0,
+            'price' => isset($bill['price']) ? $bill['price'] : 0
+        ];
     }
 
-    $totalAmount = $amount;
-    if (isset($bill['vehicleFreight'])) {
-        $totalAmount += intval($bill['vehicleFreight']);
+    $subtotal = 0;
+    $itemRowsHtml = '';
+    $rowIndex = 1;
+
+    foreach ($itemsList as $it) {
+        $itemName = isset($it['item_name']) ? $it['item_name'] : (isset($it['itemName']) ? $it['itemName'] : '');
+        $bag = isset($it['bag']) ? floatval($it['bag']) : 0;
+        $qty = isset($it['quantity']) ? floatval($it['quantity']) : 0;
+        $price = isset($it['price']) ? floatval($it['price']) : 0;
+        $lineAmount = $qty * $price;
+        $subtotal += $lineAmount;
+
+        $itemRowsHtml .= '<tr class="details">';
+        $itemRowsHtml .= '<td>' . $rowIndex++ . '</td>';
+        $itemRowsHtml .= '<td>' . htmlspecialchars($itemName) . '</td>';
+        $itemRowsHtml .= '<td>' . htmlspecialchars($bag) . '</td>';
+        $itemRowsHtml .= '<td>' . htmlspecialchars($qty) . '</td>';
+        $itemRowsHtml .= '<td>' . htmlspecialchars($price) . '</td>';
+        $itemRowsHtml .= '<td>' . htmlspecialchars(number_format($lineAmount, 2)) . '</td>';
+        $itemRowsHtml .= '</tr>';
     }
 
+    // Keep minimum 3 rows for template layout aesthetic if fewer items
+    while ($rowIndex <= 3) {
+        $itemRowsHtml .= '<tr class="details"><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+        $rowIndex++;
+    }
+
+    $freight = isset($bill['vehicleFreight']) ? floatval($bill['vehicleFreight']) : 0;
+    $totalAmount = $subtotal + $freight;
     $dateFormatInDDMMYYYY = $bill['createdOn'];
 
     $dynamicContent = str_replace(
@@ -62,11 +96,7 @@ function getUpdatedPdf($bill) {
             "BUYER_NAME",
             "BUYER_COMPANY",
             "BUYER_ADDRESS",
-            "ITEM_NAME",
-            "BAG",
-            "QUANTITY",
-            "PRICE",
-            "AMOUNT",
+            "ITEM_ROWS",
             "VEHICLE_NUMBER",
             "INVOICE_NUMBER",
             "DATE",
@@ -77,16 +107,12 @@ function getUpdatedPdf($bill) {
             isset($bill['buyerName']) ? $bill['buyerName'] : "",
             isset($bill['buyerCompany']) ? $bill['buyerCompany'] : "",
             isset($bill['buyerAddress']) ? $bill['buyerAddress'] : "",
-            isset($bill['itemName']) ? $bill['itemName'] : "",
-            isset($bill['bag']) ? $bill['bag'] : "",
-            isset($bill['quantity']) ? $bill['quantity'] : "",
-            isset($bill['price']) ? $bill['price'] : "",
-            $amount,
+            $itemRowsHtml,
             isset($bill['vehicleNumber']) ? $bill['vehicleNumber'] : "",
             $bill['invoiceNumber'],
             $dateFormatInDDMMYYYY,
-            isset($bill['vehicleFreight']) ? $bill['vehicleFreight'] : "",
-            $totalAmount
+            number_format($freight, 2),
+            number_format($totalAmount, 2)
         ),
         $htmlContent
     );

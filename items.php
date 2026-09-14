@@ -170,98 +170,201 @@ try {
             font-weight: 600 !important;
             padding: 10px 18px !important;
             border-radius: 8px !important;
-            transition: all 0.2s ease !important;
-            box-shadow: var(--glass-glow);
-            height: 42px;
+            transition: all 0.3s ease !important;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            height: 42px;
+            box-sizing: border-box;
         }
-
         #themeToggle:hover {
-            border-color: var(--primary) !important;
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.08) !important;
+            transform: translateY(-2px);
+        }
+        body.light-theme #themeToggle:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
         }
 
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: var(--glass-glow);
-            margin-bottom: 30px;
-        }
-
-        .table {
-            margin-bottom: 0;
-            color: var(--text-main);
-        }
-
-        .table > thead > tr > th {
-            border-bottom: 1px solid var(--border-color) !important;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 0.05em;
-            padding: 14px 16px;
-        }
-
-        .table > tbody > tr > td {
-            border-top: 1px solid var(--border-color) !important;
-            padding: 16px;
-            vertical-align: middle;
-            font-size: 14px;
-        }
-
-        .table > tbody > tr:hover {
-            background-color: var(--row-hover);
-        }
-
-        .btn-primary {
-            background: var(--primary) !important;
-            border: none !important;
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.1) !important;
+            color: #ef4444 !important;
+            border: 1px solid rgba(239, 68, 68, 0.3) !important;
             font-weight: 600 !important;
-            padding: 10px 20px !important;
+            padding: 10px 18px !important;
             border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
-            transition: all 0.2s ease !important;
+            transition: all 0.3s ease !important;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            height: 42px;
+            box-sizing: border-box;
+        }
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+            transform: translateY(-2px);
+        }
+
+        /* Upgrade add button */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%) !important;
+            border: none !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            padding: 10px 24px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
         .btn-primary:hover {
-            background: var(--primary-hover) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6) !important;
+            background: linear-gradient(135deg, var(--primary-hover) 0%, #60a5fa 100%) !important;
+        }
+
+        /* Glassmorphic Table Container */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--glass-glow);
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 16px 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 16px 12px;
+            font-size: 14px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover {
+            background-color: var(--row-hover);
+        }
+
+        /* Header Row Styling */
+        thead tr {
+            background-color: rgba(255, 255, 255, 0.015) !important;
+        }
+
+        body.light-theme thead tr {
+            background-color: rgba(0, 0, 0, 0.015) !important;
+        }
+
+        th {
+            color: var(--text-main) !important;
+            font-weight: 700 !important;
+        }
+
+        /* Buyer / Item ID Column Distinct Styling */
+        th:first-child, td:first-child {
+            font-family: 'Courier New', Courier, monospace !important;
+            font-weight: 700 !important;
+            color: #818cf8 !important;
+            text-align: center !important;
+            width: 80px;
+        }
+
+        body.light-theme th:first-child, body.light-theme td:first-child {
+            color: #4f46e5 !important;
+        }
+
+        /* Actions Column Distinct Design */
+        .actions-header, .actions-cell {
+            background-color: rgba(99, 102, 241, 0.04) !important;
+            border-left: 1px solid var(--border-color) !important;
+            text-align: center !important;
+        }
+        
+        .actions-header {
+            color: #a5b4fc !important;
+        }
+
+        body.light-theme .actions-header {
+            color: #4f46e5 !important;
+        }
+        
+        body.light-theme .actions-header, body.light-theme .actions-cell {
+            background-color: rgba(79, 70, 229, 0.03) !important;
         }
 
         .btn-warning {
-            background: var(--accent-orange) !important;
-            border: none !important;
-            font-weight: 600 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 34px !important;
+            line-height: 1 !important;
+            padding: 0 16px !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
             border-radius: 6px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            box-sizing: border-box !important;
+            border: none !important;
             transition: all 0.2s ease !important;
-            color: #ffffff !important;
+            text-decoration: none !important;
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #d97706 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3) !important;
         }
 
         .btn-warning:hover {
-            background: var(--accent-orange-hover) !important;
             transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(245, 158, 11, 0.5) !important;
+            background: linear-gradient(135deg, var(--accent-orange-hover) 0%, #f59e0b 100%) !important;
         }
 
         .btn-danger {
-            background: #ef4444 !important;
-            border: none !important;
-            font-weight: 600 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 34px !important;
+            line-height: 1 !important;
+            padding: 0 16px !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
             border-radius: 6px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            box-sizing: border-box !important;
+            border: none !important;
             transition: all 0.2s ease !important;
-            color: #ffffff !important;
+            text-decoration: none !important;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3) !important;
         }
 
         .btn-danger:hover {
-            background: #dc2626 !important;
             transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(239, 68, 68, 0.5) !important;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
         }
 
         /* Modal / Overlay styles */
@@ -349,101 +452,90 @@ try {
             border-color: var(--primary) !important;
             color: #ffffff !important;
         }
-
-        .badge-default {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-muted);
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-weight: 600;
-            font-size: 12px;
-        }
     </style>
 </head>
 <body>
-    <div class="container-fluid" style="max-width: 1200px; margin: auto;">
+<div class="dashboard-header">
+    <div class="header-top-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; position: relative;">
+        <!-- Left spacer -->
+        <div style="flex: 1; display: flex; justify-content: flex-start;"></div>
         
-        <!-- Header Section -->
-        <div class="dashboard-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <div>
-                    <h1>Items</h1>
-                    <p style="color: var(--text-muted); margin-top: 4px; font-size: 14px;">Manage inventory items and HSN descriptions</p>
-                </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <button id="themeToggle" class="btn">🌙 Theme</button>
-                    <button class="btn btn-primary" onclick="openForm()">+ Add Item</button>
-                </div>
-            </div>
-
-            <!-- Navigation Tabs -->
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div class="tabs-container">
-                    <a href="index.php" class="tab-link">Dashboard</a>
-                    <a href="bills.php" class="tab-link">Bills</a>
-                    <a href="buyers.php" class="tab-link">Buyers</a>
-                    <a href="items.php" class="tab-link active">Items</a>
-                </div>
-                <a href="logout.php" class="tab-link" style="color: #ef4444 !important;">Logout</a>
-            </div>
+        <!-- Center Title -->
+        <h1 style="text-align: center; margin: 0; background: var(--heading-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">Invoice Generator</h1>
+        
+        <!-- Right Theme Button & Logout Button -->
+        <div style="flex: 1; display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+            <button id="themeToggle" class="btn">🌙 Theme</button>
+            <a href="logout.php" class="btn btn-logout" style="text-decoration: none;">🚪 Logout</a>
         </div>
-
-        <!-- Table Card -->
-        <div class="glass-card">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px;">#</th>
-                            <th>Item Description / HSN</th>
-                            <th style="width: 160px; text-align: center;">Invoices Linked</th>
-                            <th style="width: 160px; text-align: right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (count($result) > 0) { 
-                            $count = $start_from + 1;
-                            foreach ($result as $row) { ?>
-                            <tr>
-                                <td><?php echo $count++; ?></td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($row['item_name']); ?></strong>
-                                    <?php if ($count === $start_from + 2 && $start_from === 0) { ?>
-                                        <span class="badge-default" style="margin-left: 8px; background: rgba(16, 185, 129, 0.15); color: #10b981;">Default Item</span>
-                                    <?php } ?>
-                                </td>
-                                <td style="text-align: center;">
-                                    <span class="badge badge-default"><?php echo htmlspecialchars($row['invoices_count']); ?> bills</span>
-                                </td>
-                                <td style="text-align: right;">
-                                    <button class="btn btn-warning btn-xs" onclick='editItem(<?php echo json_encode($row); ?>)' style="padding: 4px 10px; font-size: 12px; margin-right: 4px;">Edit</button>
-                                    <button class="btn btn-danger btn-xs" onclick='deleteItem(<?php echo $row['id']; ?>, "<?php echo htmlspecialchars($row['item_name'], ENT_QUOTES); ?>")' style="padding: 4px 10px; font-size: 12px;">Delete</button>
-                                </td>
-                            </tr>
-                        <?php } } else { ?>
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">No items found. Click "+ Add Item" to create one.</td>
-                            </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <?php if ($total_pages > 1) { ?>
-                <div style="text-align: center; margin-top: 20px;">
-                    <ul class="pagination">
-                        <?php for ($i = 1; $i <= $total_pages; $i++) { ?>
-                            <li class="<?php if ($page == $i) echo 'active'; ?>">
-                                <a href="items.php?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                            </li>
-                        <?php } ?>
-                    </ul>
-                </div>
-            <?php } ?>
-        </div>
-
     </div>
+    
+    <div class="header-bottom-row" style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 30px; flex-wrap: wrap; width: 100%;">
+        <div class="tabs-container">
+            <a href="index.php" class="tab-link">Dashboard</a>
+            <a href="bills.php" class="tab-link">Bills</a>
+            <a href="buyers.php" class="tab-link">Buyers</a>
+            <a href="items.php" class="tab-link active">Items</a>
+        </div>
+        
+        <button onclick="openForm()" class="btn btn-primary">Add Item</button>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 80px; text-align: center;">#</th>
+                <th>Item Description / HSN</th>
+                <th style="width: 180px; text-align: center;">Invoices Linked</th>
+                <th class="actions-header" style="width: 180px; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (count($result) > 0) { 
+                $count = $start_from + 1;
+                foreach ($result as $row) { ?>
+                <tr>
+                    <td style="text-align: center;"><?php echo $count++; ?></td>
+                    <td>
+                        <span style="font-weight: 600; font-size: 14px; color: var(--text-main);"><?php echo htmlspecialchars($row['item_name']); ?></span>
+                        <?php if ($count === $start_from + 2 && $start_from === 0) { ?>
+                            <span class="badge" style="margin-left: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">Default Item</span>
+                        <?php } ?>
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 12px; font-family: 'Courier New', monospace;"><?php echo htmlspecialchars($row['invoices_count']); ?> bills</span>
+                    </td>
+                    <td class="actions-cell">
+                        <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                            <button class="btn btn-warning" onclick='editItem(<?php echo json_encode($row); ?>)'>Edit</button>
+                            <button class="btn btn-danger" onclick='deleteItem(<?php echo $row['id']; ?>, "<?php echo htmlspecialchars($row['item_name'], ENT_QUOTES); ?>")'>Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            <?php } } else { ?>
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 20px;">No items found. Click "+ Add Item" to create one.</td>
+                </tr>
+            <?php } ?>
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <?php if ($total_pages > 1) { ?>
+        <div style="text-align: center; margin-top: 20px;">
+            <ul class="pagination">
+                <?php for ($i = 1; $i <= $total_pages; $i++) { ?>
+                    <li class="<?php if ($page == $i) echo 'active'; ?>">
+                        <a href="items.php?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                    </li>
+                <?php } ?>
+            </ul>
+        </div>
+    <?php } ?>
+</div>
 
     <!-- Overlay Form for Adding / Editing Item -->
     <div id="overlayForm" class="overlay">

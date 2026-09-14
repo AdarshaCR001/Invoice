@@ -5,18 +5,19 @@ require_once('htmlPdfConverter.php');
 require_once('aws_s3.php');
 
 // Retrieve the JSON array
-$billData = $_POST['data'];
+$billData = isset($_POST['data']) ? $_POST['data'] : null;
 
-// Database connection
+if (!$billData) {
+    echo 'Error: No bill data provided.';
+    exit;
+}
+
 $s3_base_url = $_ENV['S3_BASE_URL'];
 
 try {
-    // Create a new PDO instance
     $conn = getDbConnection();
 
     $billData['payment_received'] = isset($billData['payment_received']) ? floatval($billData['payment_received']) : 0.00;
-
-    // Extract selected buyerId from post data
     $buyer_id = isset($billData['buyerId']) ? intval($billData['buyerId']) : 0;
 
     if ($buyer_id <= 0) {
@@ -24,11 +25,52 @@ try {
         exit;
     }
 
+    $itemsList = isset($billData['items']) && is_array($billData['items']) ? $billData['items'] : [];
+    if (count($itemsList) === 0) {
+        // Fallback for single item structure
+        if (!empty($billData['itemName'])) {
+            $itemsList[] = [
+                'item_name' => $billData['itemName'],
+                'bag' => isset($billData['bag']) ? floatval($billData['bag']) : 0,
+                'quantity' => isset($billData['quantity']) ? floatval($billData['quantity']) : 0,
+                'price' => isset($billData['price']) ? floatval($billData['price']) : 0
+            ];
+        } else {
+            echo 'Error: At least one item is required.';
+            exit;
+        }
+    }
+
+    $primaryItemName = isset($itemsList[0]['item_name']) ? $itemsList[0]['item_name'] : '';
+    if (count($itemsList) > 1) {
+        $primaryItemName .= ' (+ ' . (count($itemsList) - 1) . ' items)';
+    }
+
+    $totalQuantity = 0;
+    $totalBag = 0;
+    $weightedPriceSum = 0;
+
+    foreach ($itemsList as $it) {
+        $q = isset($it['quantity']) ? floatval($it['quantity']) : 0;
+        $p = isset($it['price']) ? floatval($it['price']) : 0;
+        $b = isset($it['bag']) ? floatval($it['bag']) : 0;
+        $totalQuantity += $q;
+        $totalBag += $b;
+        $weightedPriceSum += ($q * $p);
+    }
+    $avgPrice = $totalQuantity > 0 ? ($weightedPriceSum / $totalQuantity) : 0;
+
+    $billData['itemName'] = $primaryItemName;
+    $billData['quantity'] = $totalQuantity;
+    $billData['price'] = $avgPrice;
+    $billData['bag'] = $totalBag;
+    $billData['items'] = $itemsList;
+
+    $conn->beginTransaction();
+
     if (!empty($billData['invoiceNumber'])) {
-        // If invoiceNumber is present, perform an update
         $billData['updatedOn'] = date('Y-m-d');
 
-        // Prepare the SQL statement for updating the record by invoice_number
         $stmt = $conn->prepare("UPDATE bills 
                                 SET buyer_id = :buyerId, 
                                     item_name = :itemName, 
@@ -41,50 +83,72 @@ try {
                                     updated_on = :updatedOn 
                                 WHERE invoice_number = :invoiceNumber");
 
-        echo 'Bill data updated successfully!';
+        $stmt->bindParam(':buyerId', $buyer_id);
+        $stmt->bindParam(':itemName', $billData['itemName']);
+        $stmt->bindParam(':quantity', $billData['quantity']);
+        $stmt->bindParam(':price', $billData['price']);
+        $stmt->bindParam(':bag', $billData['bag']);
+        $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
+        $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
+        $stmt->bindParam(':paymentReceived', $billData['payment_received']);
+        $stmt->bindParam(':updatedOn', $billData['updatedOn']);
+        $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
+        $stmt->execute();
+
+        // Delete existing items for update
+        $stmt_del = $conn->prepare("DELETE FROM bill_items WHERE invoice_number = :invoiceNumber");
+        $stmt_del->bindParam(':invoiceNumber', $billData['invoiceNumber']);
+        $stmt_del->execute();
+
     } else {
-        // If no invoiceNumber is present, create a new record
         $billData['createdOn'] = date('Y-m-d');
 
-        // Prepare the SQL statement for inserting a new record
         $stmt = $conn->prepare("INSERT INTO bills (buyer_id, item_name, quantity, price, bag, vehicle_number, vehicle_freight, payment_received, created_on, updated_on) 
                                VALUES (:buyerId, :itemName, :quantity, :price, :bag, :vehicleNumber, :vehicleFreight, :paymentReceived, :createdOn, :updatedOn)");
 
-        echo 'Bill data inserted successfully!';
-    }
-
-    // Bind the parameters (same for both insert and update)
-    $stmt->bindParam(':buyerId', $buyer_id);
-    $stmt->bindParam(':itemName', $billData['itemName']);
-    $stmt->bindParam(':quantity', $billData['quantity']);
-    $stmt->bindParam(':price', $billData['price']);
-    $stmt->bindParam(':bag', $billData['bag']);
-    $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
-    $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
-    $stmt->bindParam(':paymentReceived', $billData['payment_received']);
-
-    if (!empty($billData['invoiceNumber'])) {
-        $stmt->bindParam(':updatedOn', $billData['updatedOn']);
-        $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
-    } else {
+        $stmt->bindParam(':buyerId', $buyer_id);
+        $stmt->bindParam(':itemName', $billData['itemName']);
+        $stmt->bindParam(':quantity', $billData['quantity']);
+        $stmt->bindParam(':price', $billData['price']);
+        $stmt->bindParam(':bag', $billData['bag']);
+        $stmt->bindParam(':vehicleNumber', $billData['vehicleNumber']);
+        $stmt->bindParam(':vehicleFreight', $billData['vehicleFreight']);
+        $stmt->bindParam(':paymentReceived', $billData['payment_received']);
         $stmt->bindParam(':createdOn', $billData['createdOn']);
         $stmt->bindParam(':updatedOn', $billData['createdOn']);
-    }
+        $stmt->execute();
 
-    // Execute the insert or update query
-    $stmt->execute();
-
-    if (empty($billData['invoiceNumber'])) {
-        // Get the newly generated invoiceNumber after insert
         $billData['invoiceNumber'] = $conn->lastInsertId();
     }
+
+    // Insert line items into bill_items
+    $stmt_item_ins = $conn->prepare("INSERT INTO bill_items (invoice_number, item_name, bag, quantity, price, amount) 
+                                    VALUES (:invoiceNumber, :itemName, :bag, :quantity, :price, :amount)");
+
+    foreach ($itemsList as $it) {
+        $in = $billData['invoiceNumber'];
+        $name = isset($it['item_name']) ? $it['item_name'] : (isset($it['itemName']) ? $it['itemName'] : '');
+        $bg = isset($it['bag']) ? floatval($it['bag']) : 0;
+        $qty = isset($it['quantity']) ? floatval($it['quantity']) : 0;
+        $pr = isset($it['price']) ? floatval($it['price']) : 0;
+        $amt = $qty * $pr;
+
+        $stmt_item_ins->bindParam(':invoiceNumber', $in);
+        $stmt_item_ins->bindParam(':itemName', $name);
+        $stmt_item_ins->bindParam(':bag', $bg);
+        $stmt_item_ins->bindParam(':quantity', $qty);
+        $stmt_item_ins->bindParam(':price', $pr);
+        $stmt_item_ins->bindParam(':amount', $amt);
+        $stmt_item_ins->execute();
+    }
+
+    $conn->commit();
 
     $stmt = $conn->prepare("SELECT created_on FROM bills WHERE invoice_number = :invoiceNumber");
     $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
     $stmt->execute();
     $record = $stmt->fetch(PDO::FETCH_ASSOC);
     $billData['createdOn'] = $record['created_on'];
-
 
     // Generate the PDF with the bill data
     $filePath = getUpdatedPdf($billData);
@@ -102,17 +166,17 @@ try {
     $stmt = $conn->prepare("UPDATE bills SET url = :url WHERE invoice_number = :invoiceNumber");
     $stmt->bindParam(':url', $fileKey);
     $stmt->bindParam(':invoiceNumber', $billData['invoiceNumber']);
-
-    // Execute the update query for the file URL
     $stmt->execute();
 
-    // Close the file and delete the temporary file
     fclose($file);
     unlink($filePath);
 
+    echo !empty($_POST['data']['invoiceNumber']) ? 'Bill data updated successfully!' : 'Bill data inserted successfully!';
+
 } catch (Exception $e) {
-    // Return an error message
+    if (isset($conn) && $conn->inTransaction()) {
+        $conn->rollBack();
+    }
     echo 'Error: ' . $e->getMessage();
 }
-
 ?>

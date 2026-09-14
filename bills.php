@@ -86,6 +86,22 @@ try {
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Retrieve bill_items for all bills on the current page
+    $bill_ids = array_column($result, 'invoice_number');
+    $bill_items_map = [];
+    if (count($bill_ids) > 0) {
+        $in_clause = implode(',', array_map('intval', $bill_ids));
+        $stmt_bi = $conn->query("SELECT * FROM bill_items WHERE invoice_number IN ($in_clause) ORDER BY id ASC");
+        $items_rows = $stmt_bi->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($items_rows as $bi_row) {
+            $bill_items_map[$bi_row['invoice_number']][] = $bi_row;
+        }
+    }
+    foreach ($result as &$r) {
+        $r['items'] = isset($bill_items_map[$r['invoice_number']]) ? $bill_items_map[$r['invoice_number']] : [];
+    }
+    unset($r);
+
     // Count total number of records under active filter
     $stmt_count = $conn->prepare("SELECT COUNT(*) AS total FROM bills b $where_sql");
     foreach ($params as $key => $val) {
@@ -495,14 +511,36 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
 
         .overlay-content {
             background-color: var(--modal-bg);
-            margin: 8% auto;
+            margin: 4% auto;
             padding: 32px;
             border: 1px solid var(--border-color);
-            width: 90%;
+            width: 95%;
             max-width: 550px;
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
             position: relative;
+        }
+
+        #overlayForm .overlay-content {
+            max-width: 920px;
+        }
+
+        #itemsTable th {
+            font-size: 12px !important;
+            padding: 12px 10px !important;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color) !important;
+        }
+
+        #itemsTable td {
+            padding: 8px 8px !important;
+            vertical-align: middle !important;
+        }
+
+        #itemsTable .form-control {
+            height: 40px !important;
+            font-size: 14px !important;
+            padding: 8px 12px !important;
         }
 
         .overlay-content h1 {
@@ -767,36 +805,29 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
                 <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Buyer address is required.</div>
             </div>
 
-            <div class="form-group">
-                <label for="itemName">Item Name: <span style="color: #ef4444;">*</span></label>
-                <select name="itemName" id="itemName" class="form-control" required>
-                    <?php foreach ($items as $idx => $it) { 
-                        $is_default = ($idx === 0) ? 'selected' : '';
-                    ?>
-                        <option value="<?php echo htmlspecialchars($it['item_name']); ?>" <?php echo $is_default; ?>>
-                            <?php echo htmlspecialchars($it['item_name']); ?>
-                        </option>
-                    <?php } ?>
-                </select>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please select an item name.</div>
-            </div>
-
-            <div class="form-group">
-                <label for="quantity">Quantity (KG): <span style="color: #ef4444;">*</span></label>
-                <input type="number" value=0 step="0.01" name="quantity" id="quantity" class="form-control" required>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid quantity.</div>
-            </div>
-
-            <div class="form-group">
-                <label for="bag">Bag: <span style="color: #ef4444;">*</span></label>
-                <input type="number" value=0 step="0.01" name="bag" id="bag" class="form-control" required>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid bag amount.</div>
-            </div>
-
-            <div class="form-group">
-                <label for="price">Price (Per KG): <span style="color: #ef4444;">*</span></label>
-                <input type="number" value=0 step="0.01" name="price" id="price" class="form-control" required>
-                <div class="invalid-feedback" style="display: none; color: #ef4444; font-size: 12px; margin-top: 4px;">Please enter a valid price.</div>
+            <!-- Multi-item list container -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="margin: 0; font-weight: 600;">Items List: <span style="color: #ef4444;">*</span></label>
+                    <button type="button" class="btn btn-xs btn-primary" onclick="addItemRow()" style="padding: 4px 12px; font-size: 12px; font-weight: 600;">+ Add Item Row</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="itemsTable" style="margin-bottom: 0; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <thead>
+                            <tr style="font-size: 11px; text-transform: uppercase; color: var(--text-muted);">
+                                <th style="width: 38%;">Description</th>
+                                <th style="width: 14%;">Bags</th>
+                                <th style="width: 15%;">Qty (KG)</th>
+                                <th style="width: 15%;">Price/KG</th>
+                                <th style="width: 15%;">Amount</th>
+                                <th style="width: 35px; text-align: center;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <!-- Dynamic item rows inserted via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="form-group">
@@ -1018,17 +1049,82 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
       return isNegative ? '-' + formatted : formatted;
     }
 
+    var availableItems = <?php echo json_encode($items); ?>;
+
+    function addItemRow(data) {
+        data = data || {};
+        var selectedName = data.item_name || data.itemName || (availableItems.length > 0 ? availableItems[0].item_name : '');
+        var bag = data.bag !== undefined ? data.bag : 0;
+        var qty = data.quantity !== undefined ? data.quantity : 0;
+        var price = data.price !== undefined ? data.price : 0;
+
+        var optionsHtml = '';
+        var foundSelected = false;
+        for (var i = 0; i < availableItems.length; i++) {
+            var name = availableItems[i].item_name;
+            var sel = (name === selectedName) ? 'selected' : '';
+            if (sel) foundSelected = true;
+            optionsHtml += '<option value="' + escapeHtml(name) + '" ' + sel + '>' + escapeHtml(name) + '</option>';
+        }
+        if (!foundSelected && selectedName) {
+            optionsHtml += '<option value="' + escapeHtml(selectedName) + '" selected>' + escapeHtml(selectedName) + '</option>';
+        }
+
+        var rowHtml = '<tr class="item-row">' +
+            '<td><select class="form-control item-select" style="font-size: 13px;" required>' + optionsHtml + '</select></td>' +
+            '<td><input type="number" step="0.01" class="form-control item-bag" value="' + bag + '" required></td>' +
+            '<td><input type="number" step="0.01" class="form-control item-qty" value="' + qty + '" required></td>' +
+            '<td><input type="number" step="0.01" class="form-control item-price" value="' + price + '" required></td>' +
+            '<td style="vertical-align: middle;"><span class="item-amount" style="font-weight: 600; font-size: 13px;">₹ 0.00</span></td>' +
+            '<td style="text-align: center; vertical-align: middle;"><button type="button" class="btn btn-danger btn-xs" onclick="removeItemRow(this)" style="padding: 2px 8px; font-size: 14px; line-height: 1;">&times;</button></td>' +
+            '</tr>';
+
+        $('#itemsTableBody').append(rowHtml);
+
+        // Bind input calculation
+        $('#itemsTableBody tr.item-row:last .item-qty, #itemsTableBody tr.item-row:last .item-price').on('input change', function() {
+            updateLiveTotals();
+        });
+
+        updateLiveTotals();
+    }
+
+    function removeItemRow(btn) {
+        if ($('#itemsTableBody tr.item-row').length > 1) {
+            $(btn).closest('tr').remove();
+            updateLiveTotals();
+        } else {
+            Swal.fire({ icon: 'warning', title: 'Action Denied', text: 'Invoice must contain at least one item row.' });
+        }
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     function updateLiveTotals() {
-      var qty = parseFloat($('#quantity').val()) || 0;
-      var price = parseFloat($('#price').val()) || 0;
-      var freight = parseFloat($('#vehicleFreight').val()) || 0;
-      var payment = parseFloat($('#payment_received').val()) || 0;
-      
-      var total = (qty * price) + freight;
-      var balance = total - payment;
-      
-      $('#calculatedTotalAmount').text(formatIndianCurrencyJS(total));
-      $('#calculatedBalanceAmount').text(formatIndianCurrencyJS(balance));
+        var subtotal = 0;
+        $('#itemsTableBody tr.item-row').each(function() {
+            var qty = parseFloat($(this).find('.item-qty').val()) || 0;
+            var price = parseFloat($(this).find('.item-price').val()) || 0;
+            var amount = qty * price;
+            subtotal += amount;
+            $(this).find('.item-amount').text(formatIndianCurrencyJS(amount));
+        });
+
+        var freight = parseFloat($('#vehicleFreight').val()) || 0;
+        var payment = parseFloat($('#payment_received').val()) || 0;
+
+        var total = subtotal + freight;
+        var balance = total - payment;
+
+        $('#calculatedTotalAmount').text(formatIndianCurrencyJS(total));
+        $('#calculatedBalanceAmount').text(formatIndianCurrencyJS(balance));
     }
 
     $(document).ready(function() {
@@ -1082,24 +1178,40 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
     $submitBtn.prop('disabled', true).text('Saving...');
 
 
-    var invoiceNumber = $('input[name=invoiceNumber]').val(); // Check for invoice number (edit mode)
-    console.log("InvoiceNumber: "+invoiceNumber);
+    var invoiceNumber = $('input[name=invoiceNumber]').val();
     var vechicleFreight = $('input[name=vehicleFreight]').val();
-    console.log("vehicleFreight: "+vechicleFreight);
+
+    var itemsData = [];
+    $('#itemsTableBody tr.item-row').each(function() {
+        var itemName = $(this).find('.item-select').val();
+        var bag = parseFloat($(this).find('.item-bag').val()) || 0;
+        var qty = parseFloat($(this).find('.item-qty').val()) || 0;
+        var price = parseFloat($(this).find('.item-price').val()) || 0;
+        if (itemName) {
+            itemsData.push({
+                item_name: itemName,
+                bag: bag,
+                quantity: qty,
+                price: price
+            });
+        }
+    });
+
+    if (itemsData.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Items Required', text: 'Please add at least one item to the bill.' });
+        return;
+    }
+
     var billData = {
-        invoiceNumber: invoiceNumber, // Include invoiceNumber if updating
+        invoiceNumber: invoiceNumber,
         buyerId: $('#buyerIdSelect').val(),
-      buyerName: $('input[name=buyerName]').val(),
-      buyerCompany: $('input[name=buyerCompany]').val(),
-      buyerAddress: $('input[name=buyerAddress]').val(),
-      itemName: $('#itemName').val(),
-      quantity: parseFloat($('input[name=quantity]').val()),
-      price: parseFloat($('input[name=price]').val()),
-      bag: parseFloat($('input[name=bag]').val()),
-      vehicleNumber: $('input[name=vehicleNumber]').val(),
-      vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight,
-      payment_received: parseFloat($('input[name=payment_received]').val()) || 0.00
-      // Add more properties as needed
+        buyerName: $('input[name=buyerName]').val(),
+        buyerCompany: $('input[name=buyerCompany]').val(),
+        buyerAddress: $('input[name=buyerAddress]').val(),
+        items: itemsData,
+        vehicleNumber: $('input[name=vehicleNumber]').val(),
+        vehicleFreight: Number.isNaN(parseFloat(vechicleFreight)) ? 0 : vechicleFreight,
+        payment_received: parseFloat($('input[name=payment_received]').val()) || 0.00
     };
     
     // Send the form data to the PHP script
@@ -1230,38 +1342,38 @@ function getExportCsvLink($buyer_filter, $balance_filter, $selected_month, $sele
             document.getElementById("overlayForm").style.display = "block";
             balanceManuallyEdited = true;
 
-            // Populate the form with existing bill data for editing
-            $('input[name=invoiceNumber]').val(bill.invoice_number); // Hidden field for invoice number
+            $('input[name=invoiceNumber]').val(bill.invoice_number);
             $('#buyerIdSelect').val(bill.buyer_id);
             $('#buyerIdSelect').trigger('change');
-            if (bill.item_name) {
-                if ($('#itemName option[value="' + bill.item_name + '"]').length === 0) {
-                    $('#itemName').append(new Option(bill.item_name, bill.item_name));
-                }
-                $('#itemName').val(bill.item_name);
-            }
-            $('input[name=quantity]').val(bill.quantity);
-            $('input[name=price]').val(bill.price);
-            $('input[name=bag]').val(bill.bag);
             $('input[name=vehicleNumber]').val(bill.vehicle_number);
             $('input[name=vehicleFreight]').val(bill.vehicle_freight);
             $('input[name=payment_received]').val(bill.payment_received);
+
+            $('#itemsTableBody').empty();
+            if (bill.items && bill.items.length > 0) {
+                bill.items.forEach(function(it) {
+                    addItemRow(it);
+                });
+            } else {
+                addItemRow({ item_name: bill.item_name, bag: bill.bag, quantity: bill.quantity, price: bill.price });
+            }
+
             updateLiveTotals();
         }
 
         // Function to clear the form inputs
         function clearForm() {
-        $('input[name=invoiceNumber]').val('');
-        $('#buyerIdSelect').val('');
-        $('#buyerIdSelect').trigger('change');
-        $('#itemName').prop('selectedIndex', 0);
-        document.getElementById('quantity').value = '';
-        document.getElementById('price').value = '';
-        document.getElementById('bag').value = '';
-        document.getElementById('vehicleNumber').value = '';
-        document.getElementById('vehicleFreight').value = '';
-        document.getElementById('payment_received').value = '0.00';
-        updateLiveTotals();
+            $('input[name=invoiceNumber]').val('');
+            $('#buyerIdSelect').val('');
+            $('#buyerIdSelect').trigger('change');
+            $('input[name=vehicleNumber]').val('');
+            $('input[name=vehicleFreight]').val('');
+            $('input[name=payment_received]').val('0.00');
+
+            $('#itemsTableBody').empty();
+            addItemRow();
+
+            updateLiveTotals();
         }
 
         // Function to open the balance form overlay with pre-filled payment received
