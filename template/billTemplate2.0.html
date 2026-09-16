@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>Indushree Invoice 2.0</title>
+
+	<style>
+		@page {
+			margin: 0;
+		}
+
+		body {
+			font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+			color: #1e293b;
+			margin: 0;
+			padding: 0;
+			background-color: #ffffff;
+			font-size: 13px;
+			line-height: 1.5;
+		}
+
+		.invoice-wrapper {
+			padding: 35px 40px;
+			position: relative;
+			box-sizing: border-box;
+		}
+
+		/* Header Banner */
+		.header-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 25px;
+		}
+
+		.header-table td {
+			vertical-align: top;
+		}
+
+		.company-title {
+			font-size: 24px;
+			font-weight: 800;
+			color: #1e1b4b;
+			letter-spacing: -0.02em;
+			margin: 0 0 4px 0;
+			text-transform: uppercase;
+		}
+
+		.company-sub {
+			font-size: 12px;
+			color: #64748b;
+			line-height: 1.4;
+		}
+
+		.gst-phone-badge {
+			display: inline-block;
+			background-color: #f1f5f9;
+			border-radius: 6px;
+			padding: 6px 12px;
+			font-size: 11px;
+			color: #334155;
+			font-weight: 600;
+			margin-top: 8px;
+		}
+
+		.invoice-badge-box {
+			background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+			background-color: #1e1b4b;
+			color: #ffffff;
+			padding: 16px 20px;
+			border-radius: 10px;
+			text-align: right;
+		}
+
+		.invoice-title {
+			font-size: 18px;
+			font-weight: 700;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: #c7d2fe;
+			margin-bottom: 6px;
+		}
+
+		.invoice-meta-text {
+			font-size: 13px;
+			color: #f8fafc;
+			line-height: 1.6;
+		}
+
+		/* Details Card Section */
+		.details-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 25px;
+		}
+
+		.details-table td {
+			width: 50%;
+			vertical-align: top;
+			padding: 0;
+		}
+
+		.card-box {
+			background-color: #f8fafc;
+			border: 1px solid #e2e8f0;
+			border-radius: 10px;
+			padding: 14px 18px;
+		}
+
+		.card-title {
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: #4f46e5;
+			margin-bottom: 8px;
+			border-bottom: 1px solid #e2e8f0;
+			padding-bottom: 4px;
+		}
+
+		.card-content {
+			font-size: 12px;
+			color: #334155;
+			line-height: 1.6;
+		}
+
+		.card-content b {
+			color: #0f172a;
+		}
+
+		/* Watermark */
+		.container__watermark {
+			color: rgba(99, 102, 241, 0.07);
+			font-size: 4.5rem;
+			font-weight: 900;
+			text-transform: uppercase;
+			position: absolute;
+			top: 420px;
+			left: 140px;
+			transform: rotate(-35deg);
+			user-select: none;
+			z-index: 0;
+		}
+
+		/* Items Table */
+		.items-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 20px;
+			position: relative;
+			z-index: 1;
+		}
+
+		.items-table th {
+			background-color: #1e1b4b;
+			color: #ffffff;
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.06em;
+			padding: 10px 12px;
+			text-align: left;
+			border: none;
+		}
+
+		.items-table th:first-child {
+			border-top-left-radius: 8px;
+			border-bottom-left-radius: 8px;
+			text-align: center;
+			width: 35px;
+		}
+
+		.items-table th:last-child {
+			border-top-right-radius: 8px;
+			border-bottom-right-radius: 8px;
+			text-align: right;
+		}
+
+		.items-table th.text-center {
+			text-align: center;
+		}
+
+		.items-table th.text-right {
+			text-align: right;
+		}
+
+		.items-table td {
+			padding: 10px 12px;
+			font-size: 12px;
+			color: #334155;
+			border-bottom: 1px solid #f1f5f9;
+			vertical-align: middle;
+		}
+
+		.items-table td:first-child {
+			text-align: center;
+			color: #64748b;
+			font-weight: 600;
+		}
+
+		.items-table tr.details td:last-child {
+			text-align: right;
+			font-weight: 600;
+			color: #0f172a;
+		}
+
+		/* Summary Table */
+		.summary-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 25px;
+			position: relative;
+			z-index: 1;
+		}
+
+		.summary-table td {
+			padding: 4px 12px;
+			font-size: 12px;
+		}
+
+		.summary-label {
+			text-align: right;
+			color: #64748b;
+			font-weight: 600;
+			width: 80%;
+		}
+
+		.summary-value {
+			text-align: right;
+			color: #0f172a;
+			font-weight: 600;
+			width: 20%;
+		}
+
+		.grand-total-row td {
+			padding-top: 8px;
+			padding-bottom: 8px;
+			border-top: 2px dashed #cbd5e1;
+			border-bottom: 2px solid #1e1b4b;
+		}
+
+		.grand-total-label {
+			text-align: right;
+			font-size: 14px;
+			font-weight: 700;
+			color: #1e1b4b;
+			text-transform: uppercase;
+			letter-spacing: 0.03em;
+		}
+
+		.grand-total-value {
+			text-align: right;
+			font-size: 16px;
+			font-weight: 800;
+			color: #4f46e5;
+		}
+
+		/* Footer & Signature */
+		.footer-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 15px;
+		}
+
+		.footer-table td {
+			vertical-align: top;
+		}
+
+		.terms-box {
+			background-color: #faf5ff;
+			border: 1px solid #f3e8ff;
+			border-radius: 8px;
+			padding: 12px 14px;
+			font-size: 10.5px;
+			color: #6b21a8;
+			line-height: 1.5;
+		}
+
+		.terms-title {
+			font-weight: 700;
+			margin-bottom: 4px;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			font-size: 10px;
+		}
+
+		.signature-box {
+			text-align: center;
+			padding-top: 5px;
+		}
+
+		.signature-title {
+			font-size: 12px;
+			font-weight: 700;
+			color: #1e1b4b;
+		}
+
+		.signature-img {
+			width: 170px;
+			max-height: 55px;
+			object-fit: contain;
+			margin: 4px 0;
+		}
+
+		.signature-sub {
+			font-size: 11px;
+			color: #64748b;
+			font-weight: 600;
+		}
+
+		.thank-you-banner {
+			text-align: center;
+			margin-top: 20px;
+			padding-top: 12px;
+			border-top: 1px solid #e2e8f0;
+		}
+
+		.thank-you-text {
+			font-size: 14px;
+			font-weight: 700;
+			color: #4f46e5;
+			margin: 0 0 2px 0;
+		}
+
+		.computer-gen-text {
+			font-size: 9.5px;
+			color: #94a3b8;
+			font-style: italic;
+		}
+
+		/* Utility Helper Classes */
+		.text-center {
+			text-align: center;
+		}
+
+		.text-right {
+			text-align: right;
+		}
+
+		.text-left {
+			text-align: left;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="invoice-wrapper">
+
+		<!-- Header Banner -->
+		<table class="header-table">
+			<tr>
+				<td style="width: 58%;">
+					<div class="company-title">INDUSHREE ENTERPRISES</div>
+					<div class="company-sub">BM Road, Yediyur, Kunigal Taluk, Tumkur</div>
+					<div class="gst-phone-badge">
+						<b>GSTIN:</b> 29APAPB5521J2Z3 &nbsp;|&nbsp; <b>Ph:</b> 6363585927, 7795290146
+					</div>
+				</td>
+				<td style="width: 42%;">
+					<div class="invoice-badge-box">
+						<div class="invoice-title">BILL OF SUPPLY</div>
+						<div class="invoice-meta-text">
+							<b>Invoice #:</b> INVOICE_NUMBER<br />
+							<b>Issue Date:</b> DATE
+						</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<!-- Details Card Section -->
+		<table class="details-table">
+			<tr>
+				<td style="padding-right: 10px;">
+					<div class="card-box">
+						<div class="card-title">Billed To (Buyer Details)</div>
+						<div class="card-content">
+							<b>BUYER_NAME</b><br />
+							<b>BUYER_COMPANY</b><br />
+							BUYER_ADDRESS<br />
+							<div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #e2e8f0;">
+								<b>Vehicle No:</b> VEHICLE_NUMBER
+							</div>
+						</div>
+					</div>
+				</td>
+				<td style="padding-left: 10px;">
+					<div class="card-box">
+						<div class="card-title">Bank & Payment Account</div>
+						<div class="card-content">
+							<b>Account Name:</b> Indushree enterprises<br />
+							<b>Bank Name:</b> SBI (State Bank of India)<br />
+							<b>Branch:</b> Yediyur<br />
+							<b>Account No:</b> 64099662317<br />
+							<b>IFSC Code:</b> SBIN0040233
+						</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<!-- Watermark -->
+		<div class="container__watermark">
+			Original
+		</div>
+
+		<!-- Items Table -->
+		<table class="items-table">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Item Description</th>
+					<th class="text-center">Bags</th>
+					<th class="text-center">Qty (KG)</th>
+					<th class="text-right">Unit Price (per KG)</th>
+					<th class="text-right">Amount</th>
+				</tr>
+			</thead>
+			<tbody>
+				ITEM_ROWS
+			</tbody>
+		</table>
+
+		<!-- Summary Section -->
+		<table class="summary-table">
+			<tr>
+				<td class="summary-label">Vehicle Freight:</td>
+				<td class="summary-value">Rs. VEHICLE_FREIGHT</td>
+			</tr>
+			<tr class="grand-total-row">
+				<td class="grand-total-label">Grand Total:</td>
+				<td class="grand-total-value">Rs. TOTAL_AMT</td>
+			</tr>
+		</table>
+
+		<!-- Terms & Signature Section -->
+		<table class="footer-table">
+			<tr>
+				<td style="width: 60%; padding-right: 15px;">
+					<div class="terms-box">
+						<div class="terms-title">Terms & Conditions</div>
+						• Make all checks payable to <b>Indushree enterprises</b>.<br />
+						• Total due in 15 days. Overdue accounts subject to a service charge of 2% per month.<br />
+						• We are not responsible if any goods are damaged during transport.
+					</div>
+				</td>
+				<td style="width: 40%; padding-left: 15px;">
+					<div class="signature-box">
+						<div class="signature-title">Indushree enterprises</div>
+						<img class="signature-img" src="IMAGE_SRC" alt="Signature" /><br />
+						<div class="signature-sub">Proprietor</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+
+		<!-- Thank You Banner -->
+		<div class="thank-you-banner">
+			<div class="thank-you-text">Thank you for your business!</div>
+			<div class="computer-gen-text">** This is a computer-generated invoice. Signature not required.</div>
+		</div>
+
+	</div>
+</body>
+
+</html>

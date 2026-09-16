@@ -42,8 +42,20 @@ function fileCreate($preName, $html){
 }
 
 function getUpdatedPdf($bill) {
-    // Get the HTML content from the file
-    $htmlContent = file_get_contents(__DIR__ . "/template/billTemplate.html");
+    // Get the HTML content from the environment variable or fallback to default template
+    $templateName = isset($_ENV['BILL_TEMPLATE']) && !empty($_ENV['BILL_TEMPLATE']) 
+        ? $_ENV['BILL_TEMPLATE'] 
+        : 'billTemplate2.0.html';
+
+    // Sanitize template name to prevent path traversal
+    $templateName = basename($templateName);
+    $templatePath = __DIR__ . "/template/" . $templateName;
+
+    if (!file_exists($templatePath)) {
+        $templatePath = __DIR__ . "/template/billTemplate2.0.html";
+    }
+
+    $htmlContent = file_get_contents($templatePath);
 
     // Normalize items array
     $itemsList = [];
@@ -74,10 +86,10 @@ function getUpdatedPdf($bill) {
         $itemRowsHtml .= '<tr class="details">';
         $itemRowsHtml .= '<td>' . $rowIndex++ . '</td>';
         $itemRowsHtml .= '<td>' . htmlspecialchars($itemName) . '</td>';
-        $itemRowsHtml .= '<td>' . htmlspecialchars($bag) . '</td>';
-        $itemRowsHtml .= '<td>' . htmlspecialchars($qty) . '</td>';
-        $itemRowsHtml .= '<td>' . htmlspecialchars($price) . '</td>';
-        $itemRowsHtml .= '<td>' . htmlspecialchars(number_format($lineAmount, 2)) . '</td>';
+        $itemRowsHtml .= '<td class="text-center">' . htmlspecialchars($bag) . '</td>';
+        $itemRowsHtml .= '<td class="text-center">' . htmlspecialchars($qty) . '</td>';
+        $itemRowsHtml .= '<td class="text-right">Rs. ' . htmlspecialchars(number_format($price, 2)) . '</td>';
+        $itemRowsHtml .= '<td class="text-right">Rs. ' . htmlspecialchars(number_format($lineAmount, 2)) . '</td>';
         $itemRowsHtml .= '</tr>';
     }
 

@@ -45,4 +45,30 @@ class HtmlPdfConverterTest extends TestCase
             unlink($returnedPath);
         }
     }
+
+    public function testTemplateSelectionFromEnv()
+    {
+        $_ENV['BILL_TEMPLATE'] = 'billTemplate.html';
+        $billData = [
+            'invoiceNumber' => 999,
+            'createdOn' => '2026-09-16',
+            'buyerName' => 'Test',
+            'buyerCompany' => 'Test Company',
+            'buyerAddress' => '123 Address',
+            'vehicleNumber' => 'KA-01-1234',
+            'vehicleFreight' => 100,
+            'items' => [['item_name' => 'Test Item', 'bag' => 1, 'quantity' => 10, 'price' => 100]]
+        ];
+
+        $pdfFile = getUpdatedPdf($billData);
+        $this->assertFileExists($pdfFile);
+
+        // clean up
+        if (file_exists($pdfFile)) {
+            unlink($pdfFile);
+        }
+
+        // Restore to 2.0 template
+        $_ENV['BILL_TEMPLATE'] = 'billTemplate2.0.html';
+    }
 }
