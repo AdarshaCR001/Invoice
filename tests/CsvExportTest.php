@@ -61,4 +61,51 @@ class CsvExportTest extends TestCase
 
         $this->assertEquals($expectedRow, $formattedRow);
     }
+
+    public function testMultiItemCsvExportRowFormatting()
+    {
+        $mockBillRow = [
+            'invoice_number' => 102,
+            'created_on' => '2026-09-14 12:00:00',
+            'buyer_company' => 'Test Comp XYZ',
+            'buyer_address' => '123 Test St',
+            'vehicle_number' => 'VEH-999',
+            'vehicle_freight' => 300.00,
+            'payment_received' => 0.00,
+            'balance' => 18300.00
+        ];
+
+        $mockItems = [
+            ['item_name' => 'RAGI HSN:10082031', 'bag' => 44480.03, 'quantity' => 30.00, 'price' => 600.00],
+            ['item_name' => 'Ragi Flour HSN:10082031', 'bag' => 10.00, 'quantity' => 20.00, 'price' => 50.00]
+        ];
+
+        $exportedRows = [];
+        $first = true;
+        foreach ($mockItems as $item) {
+            $itemTotal = floatval($item['quantity']) * floatval($item['price']);
+            $exportedRows[] = [
+                $mockBillRow['invoice_number'],
+                date('Y-m-d', strtotime($mockBillRow['created_on'])),
+                $mockBillRow['buyer_company'],
+                $mockBillRow['buyer_address'],
+                $item['item_name'],
+                $item['bag'],
+                $item['quantity'],
+                formatIndianCurrency($item['price']),
+                $mockBillRow['vehicle_number'],
+                $first ? formatIndianCurrency($mockBillRow['vehicle_freight']) : formatIndianCurrency(0),
+                formatIndianCurrency($itemTotal + ($first ? floatval($mockBillRow['vehicle_freight']) : 0)),
+                $first ? formatIndianCurrency($mockBillRow['payment_received']) : formatIndianCurrency(0),
+                $first ? formatIndianCurrency($mockBillRow['balance']) : formatIndianCurrency(0)
+            ];
+            $first = false;
+        }
+
+        $this->assertCount(2, $exportedRows);
+        $this->assertEquals('RAGI HSN:10082031', $exportedRows[0][4]);
+        $this->assertEquals('₹ 300.00', $exportedRows[0][9]);
+        $this->assertEquals('Ragi Flour HSN:10082031', $exportedRows[1][4]);
+        $this->assertEquals('₹ 0.00', $exportedRows[1][9]);
+    }
 }

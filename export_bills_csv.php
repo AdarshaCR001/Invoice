@@ -58,6 +58,18 @@ try {
     $stmt->execute();
     $bills = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Fetch line items for multi-item support
+    $bill_ids = array_column($bills, 'invoice_number');
+    $bill_items_map = [];
+    if (count($bill_ids) > 0) {
+        $in_clause = implode(',', array_map('intval', $bill_ids));
+        $stmt_bi = $conn->query("SELECT * FROM bill_items WHERE invoice_number IN ($in_clause) ORDER BY id ASC");
+        $items_rows = $stmt_bi->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($items_rows as $bi_row) {
+            $bill_items_map[$bi_row['invoice_number']][] = $bi_row;
+        }
+    }
+
     // Set headers for CSV download
     $filename = "bills_export_" . date('Y-m-d_H-i-s') . ".csv";
     header('Content-Type: text/csv; charset=utf-8');
@@ -84,24 +96,48 @@ try {
 
     foreach ($bills as $row) {
         $invoiceDate = date('Y-m-d', strtotime($row['created_on']));
-        $totalAmount = ($row['price'] * $row['quantity']) + $row['vehicle_freight'];
+        $billItems = isset($bill_items_map[$row['invoice_number']]) ? $bill_items_map[$row['invoice_number']] : [];
         $balance = $row['balance'] !== null ? $row['balance'] : 0.00;
 
-        fputcsv($output, [
-            $row['invoice_number'],
-            $invoiceDate,
-            $row['buyer_company'],
-            $row['buyer_address'],
-            $row['item_name'],
-            $row['bag'],
-            $row['quantity'],
-            formatIndianCurrency($row['price']),
-            $row['vehicle_number'],
-            formatIndianCurrency($row['vehicle_freight']),
-            formatIndianCurrency($totalAmount),
-            formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00),
-            formatIndianCurrency($balance)
-        ], ",", '"', "\\");
+        if (count($billItems) > 0) {
+            $first = true;
+            foreach ($billItems as $item) {
+                $itemTotal = floatval($item['quantity']) * floatval($item['price']);
+                fputcsv($output, [
+                    $row['invoice_number'],
+                    $invoiceDate,
+                    $row['buyer_company'],
+                    $row['buyer_address'],
+                    $item['item_name'],
+                    $item['bag'],
+                    $item['quantity'],
+                    formatIndianCurrency($item['price']),
+                    $row['vehicle_number'],
+                    $first ? formatIndianCurrency($row['vehicle_freight']) : formatIndianCurrency(0),
+                    formatIndianCurrency($itemTotal + ($first ? floatval($row['vehicle_freight']) : 0)),
+                    $first ? formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00) : formatIndianCurrency(0),
+                    $first ? formatIndianCurrency($balance) : formatIndianCurrency(0)
+                ], ",", '"', "\\");
+                $first = false;
+            }
+        } else {
+            $totalAmount = ($row['price'] * $row['quantity']) + $row['vehicle_freight'];
+            fputcsv($output, [
+                $row['invoice_number'],
+                $invoiceDate,
+                $row['buyer_company'],
+                $row['buyer_address'],
+                $row['item_name'],
+                $row['bag'],
+                $row['quantity'],
+                formatIndianCurrency($row['price']),
+                $row['vehicle_number'],
+                formatIndianCurrency($row['vehicle_freight']),
+                formatIndianCurrency($totalAmount),
+                formatIndianCurrency($row['payment_received'] !== null ? $row['payment_received'] : 0.00),
+                formatIndianCurrency($balance)
+            ], ",", '"', "\\");
+        }
     }
 
     fclose($output);
