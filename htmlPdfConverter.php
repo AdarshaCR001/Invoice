@@ -103,6 +103,9 @@ function getUpdatedPdf($bill) {
     $totalAmount = $subtotal + $freight;
     $dateFormatInDDMMYYYY = $bill['createdOn'];
 
+    $buyerNameRaw = isset($bill['buyerName']) ? trim($bill['buyerName']) : '';
+    $buyerNameFormatted = !empty($buyerNameRaw) ? '<b>' . htmlspecialchars($buyerNameRaw) . '</b><br />' : '';
+
     $dynamicContent = str_replace(
         array(
             "BUYER_NAME",
@@ -116,9 +119,9 @@ function getUpdatedPdf($bill) {
             "TOTAL_AMT"
         ),
         array(
-            isset($bill['buyerName']) ? $bill['buyerName'] : "",
-            isset($bill['buyerCompany']) ? $bill['buyerCompany'] : "",
-            isset($bill['buyerAddress']) ? $bill['buyerAddress'] : "",
+            $buyerNameFormatted,
+            isset($bill['buyerCompany']) ? htmlspecialchars($bill['buyerCompany']) : "",
+            isset($bill['buyerAddress']) ? htmlspecialchars($bill['buyerAddress']) : "",
             $itemRowsHtml,
             isset($bill['vehicleNumber']) ? $bill['vehicleNumber'] : "",
             $bill['invoiceNumber'],
