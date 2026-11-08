@@ -1,33 +1,38 @@
-USE invoice_db;
-
 ALTER TABLE bills ADD COLUMN balance DECIMAL(10,2) DEFAULT 0.00;
 
 -- Create buyers table
 CREATE TABLE IF NOT EXISTS buyers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     buyer_name VARCHAR(255) DEFAULT '',
     buyer_company VARCHAR(255) NOT NULL UNIQUE,
     buyer_address TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER update_buyers_updated_at
+BEFORE UPDATE ON buyers
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
 
 -- Safe migration steps to normalize existing database
 -- 1. Insert unique buyers from current bills into buyers table
-INSERT IGNORE INTO buyers (buyer_name, buyer_company, buyer_address)
+INSERT INTO buyers (buyer_name, buyer_company, buyer_address)
 SELECT DISTINCT buyer_name, buyer_company, buyer_address
-FROM bills;
+FROM bills
+ON CONFLICT DO NOTHING;
 
 -- 2. Add buyer_id foreign key column to bills table
 ALTER TABLE bills ADD COLUMN buyer_id INT DEFAULT NULL;
 
 -- 3. Map bills to their respective buyer_id
 UPDATE bills b
-JOIN buyers buy ON b.buyer_company = buy.buyer_company
-SET b.buyer_id = buy.id;
+SET buyer_id = buy.id
+FROM buyers buy
+WHERE b.buyer_company = buy.buyer_company;
 
 -- 4. Set buyer_id as NOT NULL after mapping
-ALTER TABLE bills MODIFY COLUMN buyer_id INT NOT NULL;
+ALTER TABLE bills ALTER COLUMN buyer_id SET NOT NULL;
 
 -- 5. Add Foreign Key Constraint
 ALTER TABLE bills ADD CONSTRAINT fk_bills_buyer_id FOREIGN KEY (buyer_id) REFERENCES buyers(id);

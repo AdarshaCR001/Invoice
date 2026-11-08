@@ -27,7 +27,7 @@ try {
         LEFT JOIN bills b ON i.item_name = b.item_name 
         GROUP BY i.id 
         ORDER BY i.id ASC 
-        LIMIT $start_from, $records_per_page
+        LIMIT $records_per_page OFFSET $start_from
     ");
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);

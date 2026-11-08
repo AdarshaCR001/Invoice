@@ -29,12 +29,12 @@ if ($balance_filter === 'remaining') {
 }
 
 if ($selected_year !== 'all') {
-    $where_clauses[] = "YEAR(b.created_on) = :year";
+    $where_clauses[] = "EXTRACT(YEAR FROM b.created_on) = :year";
     $params[':year'] = intval($selected_year);
 }
 
 if ($selected_month !== 'all') {
-    $where_clauses[] = "MONTH(b.created_on) = :month";
+    $where_clauses[] = "EXTRACT(MONTH FROM b.created_on) = :month";
     $params[':month'] = intval($selected_month);
 }
 
