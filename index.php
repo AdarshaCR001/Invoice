@@ -17,11 +17,11 @@ $where_clauses = [];
 $params = [];
 
 if ($selected_year !== 'all') {
-    $where_clauses[] = "YEAR(b.created_on) = :year";
+    $where_clauses[] = "EXTRACT(YEAR FROM b.created_on) = :year";
     $params[':year'] = intval($selected_year);
 }
 if ($selected_month !== 'all') {
-    $where_clauses[] = "MONTH(b.created_on) = :month";
+    $where_clauses[] = "EXTRACT(MONTH FROM b.created_on) = :month";
     $params[':month'] = intval($selected_month);
 }
 
@@ -93,7 +93,7 @@ try {
     $top_bal_amount = $top_bal_row ? $top_bal_row['balance_sum'] : 0.00;
 
     // 4. Available Years in database for filtering
-    $stmt_years = $conn->prepare("SELECT DISTINCT YEAR(created_on) AS yr FROM bills WHERE created_on IS NOT NULL ORDER BY yr DESC");
+    $stmt_years = $conn->prepare("SELECT DISTINCT EXTRACT(YEAR FROM created_on) AS yr FROM bills WHERE created_on IS NOT NULL ORDER BY yr DESC");
     $stmt_years->execute();
     $available_years = $stmt_years->fetchAll(PDO::FETCH_COLUMN);
 

@@ -20,9 +20,9 @@ A modern, responsive PHP-based Invoice Generator and Financial Dashboard designe
 Ensure you have the following installed on your local machine:
 
 1. **PHP (>= 7.4)**
-   - Required extensions: `pdo_mysql`, `openssl`, `mbstring`, `gd`
+   - Required extensions: `pdo_pgsql`, `openssl`, `mbstring`, `gd`
 2. **Composer** (PHP Package Manager)
-3. **MySQL Server**
+3. **PostgreSQL Server**
 4. **Web Browser**
 
 ---
@@ -43,14 +43,14 @@ composer install
 ```
 
 ### Step 3: Setup the Database
-1. Make sure your local MySQL server is running.
-2. Log into MySQL and create a database (default name is `invoice_db`):
-   ```sql
-   CREATE DATABASE invoice_db;
+1. Make sure your local PostgreSQL server is running.
+2. Create a PostgreSQL database (default name is `invoice_db`):
+   ```bash
+   createdb -U postgres invoice_db
    ```
 3. Import the clean database schema to initialize the tables:
    ```bash
-   mysql -u root -p invoice_db < schema.sql
+   psql -U postgres -d invoice_db -f schema.sql
    ```
 
 > [!NOTE]  
@@ -106,7 +106,7 @@ The application is configured to easily deploy to hosting platforms like **[Infi
 ### Deployment Steps:
 1. **Upload Files**: Transfer all application files and folders (including the `vendor` directory after running `composer install`) directly into the server's **`htdocs`** directory.
 2. **Database Configuration**:
-   - Create a MySQL database using the hosting control panel (e.g. MySQL Databases in cPanel).
+   - Create a PostgreSQL database using the hosting control panel (e.g. PostgreSQL Databases in cPanel).
    - Import the schema using [schema.sql](file:///Users/adarsha/Projects/Invoice/schema.sql) (or [normalization.sql](file:///Users/adarsha/Projects/Invoice/normalization.sql) if you are migrating existing data).
 3. **Environment Configuration**:
    - Copy `.env.example` to `.env` inside the server's `htdocs` folder.

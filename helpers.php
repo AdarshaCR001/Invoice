@@ -24,7 +24,7 @@ function getDbConnection() {
     $db_user = $_ENV['DB_USER'];
     $db_password = $_ENV['DB_PASSWORD'];
 
-    $conn = new PDO("mysql:host=$host;dbname=$db_name", $db_user, $db_password);
+    $conn = new PDO("pgsql:host=$host;dbname=$db_name", $db_user, $db_password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     return $conn;
 }
